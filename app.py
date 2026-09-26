@@ -109,7 +109,6 @@ def send_whatsapp_alert(phone, message):
 
 st.set_page_config(page_title="T.A.S UBT.kz - Cosmic Secure Platform", layout="centered")
 
-# 🌌 Ғарыштық стильдегі CSS дизайн
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');

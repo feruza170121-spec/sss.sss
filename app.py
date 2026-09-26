@@ -703,9 +703,11 @@ else:
             for msg in chat_messages:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
                 
+            # Түзетілген жер: form толығымен дұрыс ашылып, ішінде submit_button тұр
             with st.form("student_chat_form", clear_on_submit=True):
                 s_msg = st.text_input("Хабарлама жазу:")
-                if st.form_submit_button("Жіберу"):
+                submitted_chat = st.form_submit_button("Жіберу")
+                if submitted_chat:
                     s_msg_str = str(s_msg) if s_msg is not None else ""
                     if s_msg_str and s_msg_str.strip():
                         is_banned = check_bad_words_and_ban(user, s_msg_str)
@@ -726,7 +728,8 @@ else:
             st.subheader("📝 Директорға немесе мұғалімге заява (өтініш) жазу")
             with st.form("application_form", clear_on_submit=True):
                 app_text = st.text_area("Заяваның мәтіні:")
-                if st.form_submit_button("Заяваны жіберу"):
+                submitted_app = st.form_submit_button("Заяваны жіберу")
+                if submitted_app:
                     app_text_str = str(app_text) if app_text is not None else ""
                     if app_text_str and app_text_str.strip():
                         if "applications" not in st.session_state.app_data:

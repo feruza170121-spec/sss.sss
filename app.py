@@ -12,12 +12,13 @@ DATA_FILE = "ubt_system_data.json"
 def load_data():
     default_data = {
         "users": {
-            "director": {"password": "123", "role": "Director", "limit": None, "blocked": False},
-            "teacher1": {"password": "123", "role": "Teacher", "limit": None, "blocked": False},
-            "student1": {"password": "123", "role": "Student", "limit": None, "blocked": False},
-            "student2": {"password": "123", "role": "Student", "limit": None, "blocked": False}
+            "director": {"password": "123", "role": "Director", "direction": "Барлығы", "limit": None, "blocked": False},
+            "teacher1": {"password": "123", "role": "Teacher", "direction": "Барлығы", "limit": None, "blocked": False},
+            "student1": {"password": "123", "role": "Student", "direction": "Математика - Физика", "limit": None, "blocked": False},
+            "student2": {"password": "123", "role": "Student", "direction": "Биология - Химия", "limit": None, "blocked": False}
         },
         "questions": [],
+        "duel_questions": [], 
         "login_logs": [],
         "results": [],
         "feedback": [],
@@ -27,6 +28,7 @@ def load_data():
         "settings": {
             "timer_enabled": False,
             "timer_duration": 20,
+            "duel_timer": 3, 
             "whatsapp_phone": "",
             "allow_export": False
         }
@@ -35,10 +37,16 @@ def load_data():
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             try:
                 loaded = json.load(f)
-                # Жетпей тұрған жаңа кілттерді автоматты түрде толықтыру
                 for key in default_data:
                     if key not in loaded:
                         loaded[key] = default_data[key]
+                for u in loaded["users"]:
+                    if "direction" not in loaded["users"][u]:
+                        loaded["users"][u]["direction"] = "Математика - Физика"
+                if "duel_questions" not in loaded:
+                    loaded["duel_questions"] = []
+                if "duel_timer" not in loaded["settings"]:
+                    loaded["settings"]["duel_timer"] = 3
                 return loaded
             except Exception:
                 return default_data
@@ -60,9 +68,6 @@ if 'blocked_users' not in st.session_state:
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.current_user = None
-
-if 'student_direction' not in st.session_state:
-    st.session_state.student_direction = None
 
 if 'test_submitted' not in st.session_state:
     st.session_state.test_submitted = False
@@ -137,7 +142,6 @@ if not st.session_state.logged_in:
             st.session_state.logged_in = True
             st.session_state.current_user = username
             st.session_state.login_attempts[username] = 0
-            st.session_state.student_direction = None
             st.session_state.test_submitted = False
             st.session_state.current_test_results = None
             
@@ -191,7 +195,6 @@ else:
     if st.sidebar.button("Жүйеден шығу"):
         st.session_state.logged_in = False
         st.session_state.current_user = None
-        st.session_state.student_direction = None
         st.session_state.test_submitted = False
         st.session_state.current_test_results = None
         st.rerun()
@@ -211,15 +214,15 @@ else:
                     st.rerun()
             st.stop()
 
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-            "Қолданушылар", "Мұғалім Лимиттері", "Сұрақтар", "📊 Статистика", "💬 Шағымдар", "Пароль/WhatsApp", "Баптаулар"
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+            "Қолданушылар", "Мұғалім Лимиттері", "Сұрақтар", "⚔️ Дуэль баптаулары", "📊 Статистика", "💬 Шағымдар", "Қолданушы қосу", "Баптаулар"
         ])
         
         with tab1:
             st.subheader("👥 Қолданушыларды басқару")
             for u, data in users_db.items():
                 col1, col2, col3 = st.columns([3, 2, 2])
-                with col1: st.write(f"**{u}** ({data['role']})")
+                with col1: st.write(f"**{u}** ({data['role']} - Бағыты: {data.get('direction', 'Жоқ')})")
                 with col2: st.write(f"{'🔴 Бұғатталған' if data.get('blocked') else '🟢 Белсенді'}")
                 with col3:
                     if u != "director":
@@ -245,7 +248,7 @@ else:
                     st.success("Берілді!")
 
         with tab3:
-            st.subheader("📚 Сұрақтарды басқару")
+            st.subheader("📚 Жалпы тест сұрақтарын басқару")
             with st.form("dir_q"):
                 q_sub = st.selectbox("Пән", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
                 q_text = st.text_area("Сұрақ")
@@ -265,11 +268,68 @@ else:
                     if c_d: corrects.append("D")
                     qs = st.session_state.app_data["questions"]
                     new_id = max([q["id"] for q in qs], default=0) + 1
-                    qs.append({"id": new_id, "subject": q_sub, "text": q_text, "options": {"A": opt_a, "B": opt_b, "C": opt_c, "D": opt_d}, "correct": corrects, "image": None})
+                    qs.append({"id": new_id, "subject": q_sub, "text": q_text, "options": {"A": opt_a, "B": opt_b, "C": opt_c, "D": opt_d}, "correct": corrects})
                     save_data(st.session_state.app_data)
-                    st.success("Қосылды!")
+                    st.success("Сәтті қосылды!")
 
         with tab4:
+            st.subheader("⚔️ Дуэль сұрақтары мен уақытын басқару")
+            st.write("Мұнда тек оқушылардың дуэль сайысына арналған бөлек сұрақтар мен уақытты (минут) баптай аласыз.")
+            
+            with st.form("duel_settings_form"):
+                new_duel_timer = st.number_input("Дуэль уақыты (минут)", min_value=1, max_value=60, value=st.session_state.app_data["settings"].get("duel_timer", 3))
+                if st.form_submit_button("Дуэль уақытын сақтау"):
+                    st.session_state.app_data["settings"]["duel_timer"] = new_duel_timer
+                    save_data(st.session_state.app_data)
+                    st.success(f"Дуэль уақыты {new_duel_timer} минут етіп сақталды!")
+            
+            st.divider()
+            st.subheader("➕ Дуэльге жеке сұрақ қосу")
+            with st.form("duel_q_form"):
+                dq_text = st.text_area("Дуэль сұрағының мәтіні")
+                dq_a = st.text_input("A нұсқасы", key="dq_a")
+                dq_b = st.text_input("B нұсқасы", key="dq_b")
+                dq_c = st.text_input("C нұсқасы", key="dq_c")
+                dq_d = st.text_input("D нұсқасы", key="dq_d")
+                dc_a = st.checkbox("A дұрыс", key="dc_a")
+                dc_b = st.checkbox("B дұрыс", key="dc_b")
+                dc_c = st.checkbox("C дұрыс", key="dc_c")
+                dc_d = st.checkbox("D дұрыс", key="dc_d")
+                
+                if st.form_submit_button("Дуэль сұрағын қосу"):
+                    corrects = []
+                    if dc_a: corrects.append("A")
+                    if dc_b: corrects.append("B")
+                    if dc_c: corrects.append("C")
+                    if dc_d: corrects.append("D")
+                    
+                    d_qs = st.session_state.app_data["duel_questions"]
+                    new_dq_id = max([q["id"] for q in d_qs], default=0) + 1
+                    d_qs.append({"id": new_dq_id, "text": dq_text, "options": {"A": dq_a, "B": dq_b, "C": dq_c, "D": dq_d}, "correct": corrects})
+                    save_data(st.session_state.app_data)
+                    st.success("Дуэль сұрағы сәтті қосылды!")
+                    st.rerun()
+
+            st.divider()
+            st.subheader("📋 Қосылған дуэль сұрақтарының тізімі")
+            d_qs = st.session_state.app_data.get("duel_questions", [])
+            if d_qs:
+                for idx, dq in enumerate(d_qs):
+                    st.write(f"**{idx+1}-сұрақ:** {dq['text']}")
+                    for opt_k, opt_v in dq['options'].items():
+                        st.write(f"&nbsp;&nbsp;&nbsp;&nbsp;{opt_k}) {opt_v}")
+                    st.write(f"Дұрыс жауап(тар): **{', '.join(dq['correct'])}**")
+                    
+                    if st.button("Бұл сұрақты өшіру", key=f"del_dq_{dq['id']}"):
+                        st.session_state.app_data["duel_questions"] = [q for q in d_qs if q['id'] != dq['id']]
+                        save_data(st.session_state.app_data)
+                        st.success("Дуэль сұрағы өшірілді!")
+                        st.rerun()
+                    st.divider()
+            else:
+                st.info("Әзірге дуэль сұрақтары қосылмаған.")
+
+        with tab5:
             st.subheader("📊 Барлық оқушылар нәтижелері мен рейтингі")
             results = st.session_state.app_data.get("results", [])
             if results:
@@ -280,23 +340,36 @@ else:
             else:
                 st.write("Нәтижелер жоқ.")
 
-        with tab5:
+        with tab6:
             st.subheader("💬 Шағымдар мен хаттар")
             for fb in reversed(st.session_state.app_data.get("feedback", [])):
                 st.write(f"**{fb['user']}**: {fb['message']} ({fb['time']})")
 
-        with tab6:
-            st.subheader("🔑 Қолданушы қосу / Пароль өзгерту")
+        with tab7:
+            st.subheader("🔑 Жаңа қолданушы қосу (Бағытымен)")
             new_u = st.text_input("Жаңа логин")
             new_p = st.text_input("Пароль", type="password")
-            new_r = st.selectbox("Рөл", ["Teacher", "Student"])
+            new_r = st.selectbox("Рөл", ["Student", "Teacher"])
+            
+            new_dir = "Барлығы"
+            if new_r == "Student":
+                new_dir = st.selectbox("Оқушының бағытын таңдаңыз", ["Математика - Физика", "Биология - Химия", "Ағылшын - Тарих", "География - Математика"])
+            
             if st.button("Қолданушы жасау"):
                 if new_u and new_u not in users_db:
-                    users_db[new_u] = {"password": new_p, "role": new_r, "limit": None, "blocked": False}
+                    users_db[new_u] = {
+                        "password": new_p, 
+                        "role": new_r, 
+                        "direction": new_dir, 
+                        "limit": None, 
+                        "blocked": False
+                    }
                     save_data(st.session_state.app_data)
-                    st.success("Жасалды!")
+                    st.success(f"Жаңа {new_r} сәтті жасалды! Бағыты: {new_dir}")
+                else:
+                    st.error("Бұл логин бос емес немесе қате.")
 
-        with tab7:
+        with tab8:
             st.subheader("⚙️ Жүйелік баптаулар")
             st.session_state.app_data["settings"]["timer_enabled"] = st.checkbox("Таймер қосу", value=st.session_state.app_data["settings"]["timer_enabled"])
             st.session_state.app_data["settings"]["timer_duration"] = st.number_input("Уақыт (мин)", value=st.session_state.app_data["settings"]["timer_duration"])
@@ -323,14 +396,16 @@ else:
             if tc_c: corrects.append("C")
             if tc_d: corrects.append("D")
             qs = st.session_state.app_data["questions"]
-            qs.append({"id": len(qs)+1, "subject": t_sub, "text": t_text, "options": {"A": o_a, "B": o_b, "C": o_c, "D": o_d}, "correct": corrects, "image": None})
+            qs.append({"id": len(qs)+1, "subject": t_sub, "text": t_text, "options": {"A": o_a, "B": o_b, "C": o_c, "D": o_d}, "correct": corrects})
             save_data(st.session_state.app_data)
-            st.success("Қосылды!")
+            st.success("Сұрақ қосылды!")
 
     elif role == "Student":
         st.title(f"🎓 Оқушы кабинеті: {user}")
+        student_direction = users_db[user].get("direction", "Математика - Физика")
+        st.info(f"📌 Сіздің бекітілген бағытыңыз: **{student_direction}**")
         
-        tab_s1, tab_s2, tab_s3, tab_s4, tab_s5 = st.tabs(["👤 Менің профилім", "🏆 Жалпы рейтинг & Салыстыру", "⚔️ Тест тапсыру", "👥 Достар & Дуэль", "📬 Хабарландырулар"])
+        tab_s1, tab_s2, tab_s3, tab_s4, tab_s5 = st.tabs(["👤 Менің профайлым", "🏆 Жалпы рейтинг & Салыстыру", "⚔️ Тест тапсыру", "👥 Достар & Дуэль", "📬 Хабарландырулар"])
         
         with tab_s1:
             st.subheader("👤 Жеке профиль статистикасы")
@@ -338,6 +413,7 @@ else:
             my_results = [r for r in results if r['student'] == user]
             
             st.write(f"**Аты-жөні (Логині):** {user}")
+            st.write(f"**Таңдалған бағыт:** {student_direction}")
             st.write(f"**Тапсырған тест саны:** {len(my_results)}")
             
             if my_results:
@@ -388,81 +464,75 @@ else:
                             diff = my_data['percentage'] - item['percentage']
                             status = f"жоғары (+{diff:.1f}%)" if diff >= 0 else f"төмен ({diff:.1f}%)"
                             st.write(f"- {item['student']} ({item['percentage']:.1f}%) қарағанда сіздің көрсеткішіңіз **{status}**.")
-                else:
-                    st.warning("Рейтингке іліну үшін кем дегенде 1 тест тапсырыңыз!")
             else:
                 st.info("Әзірге ешқандай оқушы тест тапсырмаған.")
 
         with tab_s3:
-            st.subheader("🎯 Тест тапсыру")
+            st.subheader("🎯 Жаңа тесттер мен тапсыру алаңы")
             if not st.session_state.test_submitted:
-                if st.session_state.student_direction is None:
-                    direction = st.selectbox("Бағытты таңдаңыз", ["Таңдаңыз...", "Математика - Физика", "Биология - Химия", "Ағылшын - Тарих", "География - Математика"])
-                    if direction != "Таңдаңыз...":
-                        if st.button("Растау"):
-                            st.session_state.student_direction = direction
-                            st.rerun()
-                else:
-                    st.write(f"Бағыт: {st.session_state.student_direction}")
-                    if st.button("Бағытты өзгерту"):
-                        st.session_state.student_direction = None
-                        st.rerun()
-                    
-                    subjects = ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы"]
-                    map_dir = {
-                        "Математика - Физика": ["Математика", "Физика"],
-                        "Биология - Химия": ["Биология", "Химия"],
-                        "Ағылшын - Тарих": ["Ағылшын тілі", "Дүние жүзі тарихы"],
-                        "География - Математика": ["География", "Математика"]
-                    }
-                    all_subs = subjects + map_dir.get(st.session_state.student_direction, [])
-                    sel_sub = st.selectbox("Пән", ["Таңдаңыз..."] + all_subs)
-                    
-                    if sel_sub != "Таңдаңыз...":
-                        qs = [q for q in st.session_state.app_data["questions"] if q["subject"] == sel_sub]
-                        if qs:
-                            with st.form("exam_form"):
-                                answers = {}
-                                for idx, q in enumerate(qs):
-                                    st.write(f"**Сұрақ {idx+1}:** {q['text']}")
-                                    for k, v in q['options'].items():
-                                        st.write(f"{k}) {v}")
-                                    ans = st.multiselect("Жауапты таңдаңыз", ["A", "B", "C", "D"], key=f"q_{q['id']}")
-                                    answers[q['id']] = ans
-                                    st.divider()
+                st.write(f"Сіздің бағытыңыз бойынша тапсыруға болатын пәндер:")
+                
+                subjects = ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы"]
+                map_dir = {
+                    "Математика - Физика": ["Математика", "Физика"],
+                    "Биология - Химия": ["Биология", "Химия"],
+                    "Ағылшын - Тарих": ["Ағылшын тілі", "Дүние жүзі тарихы"],
+                    "География - Математика": ["География", "Математика"]
+                }
+                all_subs = subjects + map_dir.get(student_direction, [])
+                
+                sel_sub = st.selectbox("Пәнді таңдаңыз", ["Таңдаңыз..."] + all_subs)
+                
+                if sel_sub != "Таңдаңыз...":
+                    qs = [q for q in st.session_state.app_data["questions"] if q["subject"] == sel_sub]
+                    if qs:
+                        st.info(f"Бұл пән бойынша жаңадан қосылған сұрақтар саны: {len(qs)}")
+                        with st.form("exam_form"):
+                            answers = {}
+                            for idx, q in enumerate(qs):
+                                st.write(f"**Сұрақ {idx+1}:** {q['text']}")
+                                for k, v in q['options'].items():
+                                    st.write(f"{k}) {v}")
+                                ans = st.multiselect("Жауапты таңдаңыз", ["A", "B", "C", "D"], key=f"q_{q['id']}")
+                                answers[q['id']] = ans
+                                st.divider()
+                            
+                            if st.form_submit_button("Тестті аяқтау"):
+                                score = 0
+                                for q in qs:
+                                    if set(answers.get(q['id'], [])) == set(q['correct']):
+                                        score += 1
                                 
-                                if st.form_submit_button("Тестті аяқтау"):
-                                    score = 0
-                                    for q in qs:
-                                        if set(answers.get(q['id'], [])) == set(q['correct']):
-                                            score += 1
-                                    
-                                    st.session_state.app_data["results"].append({
-                                        "student": user, "subject": sel_sub, "score": score, "total": len(qs), "date": datetime.now().strftime("%Y-%m-%d %H:%M")
-                                    })
-                                    save_data(st.session_state.app_data)
-                                    st.session_state.test_submitted = True
-                                    st.session_state.current_test_results = {"score": score, "total": len(qs)}
-                                    st.rerun()
-                        else:
-                            st.warning("Бұл пән бойынша сұрақтар жоқ.")
+                                st.session_state.app_data["results"].append({
+                                    "student": user, "subject": sel_sub, "score": score, "total": len(qs), "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+                                })
+                                save_data(st.session_state.app_data)
+                                st.session_state.test_submitted = True
+                                st.session_state.current_test_results = {"score": score, "total": len(qs)}
+                                st.rerun()
+                    else:
+                        st.warning("Бұл пән бойынша әзірге жаңа тесттер жоқ.")
             else:
                 res = st.session_state.current_test_results
-                st.success(f"Тест аяқталды! Нәтиже: {res['score']} / {res['total']}")
-                if st.button("Басты бетке оралу"):
+                st.success(f"Тест сәтті аяқталды! Нәтижеңіз: {res['score']} / {res['total']}")
+                if st.button("Басқа тестке өту"):
                     st.session_state.test_submitted = False
-                    st.session_state.student_direction = None
                     st.rerun()
 
         with tab_s4:
             st.subheader("👥 Достар және Дуэль жүйесі")
+            duel_timer_val = st.session_state.app_data["settings"].get("duel_timer", 3)
+            duel_questions = st.session_state.app_data.get("duel_questions", [])
+            
+            st.info(f"⚡ Дуэль ережесі: Директор белгілеген бөлек дуэль сұрақтары беріледі. Уақыт лимиті: **{duel_timer_val} минут**.")
+            
             friends_db = st.session_state.app_data["friends"]
             notif_db = st.session_state.app_data["notifications"]
             
             my_friends = friends_db.get(user, [])
-            st.write(f"**Сіздің достарыңыз:** {', '.join(my_friends) if my_friends else 'Әзірге достар жоқ.'}")
+            st.write(f"**Достарыңыз:** {', '.join(my_friends) if my_friends else 'Достар тізімі бос.'}")
             
-            friend_input = st.text_input("Достыққа шақыру үшін оқушының логинін жазыңыз:")
+            friend_input = st.text_input("Достыққа шақыру үшін логин жазыңыз:")
             if st.button("Дос болуға шақыру жіберу"):
                 if friend_input and friend_input in users_db and friend_input != user:
                     if friend_input not in notif_db:
@@ -471,7 +541,16 @@ else:
                     save_data(st.session_state.app_data)
                     st.success("Шақыру жіберілді!")
                 else:
-                    st.error("Қате логин немесе өзіңізге шақыру жібере алмайсыз.")
+                    st.error("Қате логин.")
+            
+            st.divider()
+            if duel_questions:
+                st.write("⚔️ **Дуэль сайысын бастау** (Директордың жеке дуэль сұрақтары арқылы):")
+                duel_opponent = st.selectbox("Қарсыласты таңдаңыз", ["Таңдаңыз..."] + my_friends)
+                if duel_opponent != "Таңдаңыз..." and st.button("Дуэльге кірісу"):
+                    st.success(f"{duel_opponent}-мен дуэль басталды! Уақыт: {duel_timer_val} минут. Сұрақтар саны: {len(duel_questions)}")
+            else:
+                st.warning("Әзірге директор дуэль сұрақтарын қосқан жоқ.")
 
         with tab_s5:
             st.subheader("📬 Хабарландырулар және Шақырулар")

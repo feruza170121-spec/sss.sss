@@ -79,18 +79,6 @@ if 'current_test_results' not in st.session_state:
 if 'active_duel' not in st.session_state:
     st.session_state.active_duel = None
 
-BAD_WORDS = ["ботк", "сұка", "обал", "шайтан", "тексерілмеген_сөз", "қарапайым_боқтық", "ақымақ", "есек", "мұрын", "құрт", "сорлы"] 
-
-def check_bad_words_and_ban(username, text):
-    text_lower = text.lower()
-    for word in BAD_WORDS:
-        if word in text_lower:
-            unban_time = datetime.now() + timedelta(days=15)
-            st.session_state.app_data["bans"][username] = unban_time.strftime("%Y-%m-%d %H:%M:%S")
-            save_data(st.session_state.app_data)
-            return True
-    return False
-
 def send_whatsapp_alert(phone, message):
     if not phone:
         return
@@ -217,7 +205,6 @@ if not st.session_state.logged_in:
 else:
     user = st.session_state.current_user
     users_db = st.session_state.app_data["users"]
-
     role = users_db[user]["role"]
     
     st.sidebar.title(f"Қош келдіңіз, {user}!")
@@ -256,8 +243,7 @@ else:
                 col1, col2, col3 = st.columns([3, 2, 2])
                 with col1: st.write(f"**{u}** ({data['role']} - Бағыты: {data.get('direction', 'Жоқ')})")
                 with col2: st.write("🟢 Белсенді")
-                with col3:
-                    pass
+                with col3: pass
 
         with tab2:
             st.subheader("⚙️ Мұғалім лимиттері")
@@ -599,7 +585,7 @@ else:
                                 })
                                 save_data(st.session_state.app_data)
                                 st.session_state.test_submitted = True
-                                st.session_state.rerun()
+                                st.rerun()
                         with col_exit_btn:
                             if st.button("Шығу"):
                                 st.session_state.test_submitted = False

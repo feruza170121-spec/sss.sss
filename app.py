@@ -184,7 +184,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
-    st.title("🌌 T.A.S UBT.kz")
+    st.title("T.A.S UBT.kz")
     st.markdown("Жүйеге кіру үшін логин мен пароліңізді жазыңыз:")
     
     username = st.text_input("Username", key="login_username")
@@ -260,7 +260,7 @@ else:
 
     role = users_db[user]["role"]
     
-    st.sidebar.title(f"🚀 Қош келдіңіз, {user}!")
+    st.sidebar.title(f"Қош келдіңіз, {user}!")
     st.sidebar.text(f"Рөлі: {role}")
     
     if st.sidebar.button("Жүйеден шығу"):
@@ -272,7 +272,7 @@ else:
         st.rerun()
 
     if role == "Director":
-        st.title("👑 Директордың басқару панелі (T.A.S UBT.kz)")
+        st.title("Директордың басқару панелі (T.A.S UBT.kz)")
         whatsapp_phone_saved = st.session_state.app_data["settings"].get("whatsapp_phone", "")
         
         if not whatsapp_phone_saved:
@@ -518,7 +518,7 @@ else:
             st.success("Сақталды!")
 
     elif role == "Teacher":
-        st.title("📚 Мұғалім панелі (T.A.S UBT.kz)")
+        st.title("Мұғалім панелі (T.A.S UBT.kz)")
         t_tab1, t_tab2, t_tab3 = st.tabs(["📚 Сұрақ қосу", "💬 Ортақ чат", "⚖️ Аппеляцияларды қарау"])
         
         with t_tab1:
@@ -577,7 +577,7 @@ else:
                 st.info("Әзірге аппеляциялар жоқ.")
 
     elif role == "Parent":
-        st.title(f"👪 Ата-ана кабинеті: {user} (T.A.S UBT.kz)")
+        st.title(f"Ата-ана кабинеті: {user} (T.A.S UBT.kz)")
         tab_p1, tab_p2 = st.tabs(["📊 Балалардың нәтижелері", "💬 Жалпы чат"])
         
         with tab_p1:
@@ -594,7 +594,7 @@ else:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
 
     elif role == "Student":
-        st.title(f"🎓 Оқушы кабинеті: {user} (T.A.S UBT.kz)")
+        st.title(f"Оқушы кабинеті: {user} (T.A.S UBT.kz)")
         student_direction = users_db[user].get("direction", "Математика - Физика")
         
         my_badge = st.session_state.app_data["badges"].get(user, "")

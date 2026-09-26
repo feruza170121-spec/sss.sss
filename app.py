@@ -475,10 +475,11 @@ else:
                 st.info("Әзірге аппеляциялар жоқ.")
 
         with tab10:
-            st.subheader("📊 Барлық оқушылар нәтижелері")
+            st.subheader("📊 Барлық оқушылар нәтижелері (Үлкеннен кішіге рейтинг)")
             results = st.session_state.app_data.get("results", [])
             if results:
-                df = pd.DataFrame(results)
+                sorted_results = sorted(results, key=lambda x: x['score'], reverse=True)
+                df = pd.DataFrame(sorted_results)
                 st.dataframe(df)
                 st.bar_chart(df.set_index("student")[["score"]])
             else:
@@ -520,6 +521,7 @@ else:
         t_tab1, t_tab2, t_tab3 = st.tabs(["📚 Сұрақ қосу", "💬 Ортақ чат", "⚖️ Аппеляцияларды қарау"])
         
         with t_tab1:
+            st.subheader("Мұғалімнің жеке кабинеті арқылы сұрақ қосуы")
             t_sub = st.selectbox("Пән", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
             t_text = st.text_area("Сұрақ мәтіні")
             o_a = st.text_input("A нұсқасы")
@@ -581,7 +583,8 @@ else:
         with tab_p1:
             results = st.session_state.app_data.get("results", [])
             if results:
-                for r in reversed(results):
+                sorted_res = sorted(results, key=lambda x: x['score'], reverse=True)
+                for r in sorted_res:
                     st.write(f"👤 Оқушы: **{r['student']}** | Пән: **{r['subject']}** | Ұпай: **{r['score']} / {r['total']}**")
             else:
                 st.info("Нәтижелер жоқ.")
@@ -615,7 +618,7 @@ else:
                 st.info("Тест тапсырған жоқсыз.")
 
         with tab_s2:
-            st.subheader("🏆 Жалпы рейтинг")
+            st.subheader("🏆 Жалпы рейтинг (Үлкеннен кішіге қарай)")
             results = st.session_state.app_data.get("results", [])
             student_stats = {}
             for r in results:
@@ -631,6 +634,7 @@ else:
         with tab_s3:
             st.subheader("🎯 Тест тапсыру және аппеляция жіберу")
             if not st.session_state.test_submitted:
+                # Барлық сыныптар мен оқушылар үшін ортақ пән комбинациялары
                 subjects = ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы"]
                 map_dir = {
                     "Математика - Физика": ["Математика", "Физика"],
@@ -638,41 +642,50 @@ else:
                     "Ағылшын - Тарих": ["Ағылшын тілі", "Дүние жүзі тарихы"],
                     "География - Математика": ["География", "Математика"]
                 }
-                all_subs = subjects + map_dir.get(student_direction, [])
+                all_subs = subjects + map_dir.get(student_direction, ["Математика", "Физика"])
                 sel_sub = st.selectbox("Пәнді таңдаңыз", ["Таңдаңыз..."] + all_subs)
                 
                 if sel_sub != "Таңдаңыз...":
                     qs = [q for q in st.session_state.app_data["questions"] if q["subject"] == sel_sub]
                     if qs:
+                        # Тест басталған кезде сұрақтар мен батырмалар экранның 80%-ын алып тұруы үшін макет
+                        st.markdown("---")
                         answers = {}
                         for idx, q in enumerate(qs):
-                            st.write(f"**Сұрақ {idx+1}:** {q['text']}")
+                            st.markdown(f"### Сұрақ {idx+1}: {q['text']}")
                             for k, v in q['options'].items():
                                 st.write(f"{k}) {v}")
                             ans = st.multiselect("Жауап", ["A", "B", "C", "D"], key=f"q_{q['id']}")
                             answers[q['id']] = ans
                             st.divider()
                         
-                        if st.button("Тестті аяқтау"):
-                            score = 0
-                            for q in qs:
-                                if set(answers.get(q['id'], [])) == set(q['correct']):
-                                    score += 1
-                            st.session_state.app_data["results"].append({
-                                "student": user, "subject": sel_sub, "score": score, "total": len(qs), "date": datetime.now().strftime("%Y-%m-%d %H:%M")
-                            })
-                            save_data(st.session_state.app_data)
-                            st.session_state.test_submitted = True
-                            st.rerun()
+                        col_sub_btn, col_exit_btn = st.columns([3, 1])
+                        with col_sub_btn:
+                            if st.button("Тестті аяқтау"):
+                                score = 0
+                                for q in qs:
+                                    if set(answers.get(q['id'], [])) == set(q['correct']):
+                                        score += 1
+                                st.session_state.app_data["results"].append({
+                                    "student": user, "subject": sel_sub, "score": score, "total": len(qs), "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+                                })
+                                save_data(st.session_state.app_data)
+                                st.session_state.test_submitted = True
+                                st.rerun()
+                        with col_exit_btn:
+                            if st.button("Шығу"):
+                                st.session_state.test_submitted = False
+                                st.rerun()
                     else:
                         st.warning("Бұл пән бойынша сұрақтар жоқ.")
             else:
                 st.success("Тест аяқталды!")
+                if st.button("Қайтадан тест тапсыру"):
+                    st.session_state.test_submitted = False
+                    st.rerun()
                 
                 st.divider()
                 st.write("### ⚖️ Сұраққа қатысты аппеляция (шағым) беру:")
-                st.info("Егер тесттегі қандай да бір сұрақ қате деп есептесеңіз, аппеляция жібере аласыз.")
-                
                 ap_subject = st.selectbox("Пәні", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="student_app_sub")
                 ap_text = st.text_area("Аппеляция себебі (қай сұрақ, неліктен қате деп ойлайсыз):", key="student_app_txt")
                 if st.button("Аппеляцияны жіберу", key="student_send_app_btn"):
@@ -680,7 +693,6 @@ else:
                     if ap_text_str and ap_text_str.strip():
                         if "appeals" not in st.session_state.app_data:
                             st.session_state.app_data["appeals"] = []
-                        
                         st.session_state.app_data["appeals"].append({
                             "student": user,
                             "subject": ap_subject,
@@ -698,95 +710,67 @@ else:
             for msg in chat_messages:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
                 
-            s_msg = st.text_input("Хабарлама жазу:", key="student_chat_input_field")
-            if st.button("Хабарлама жіберу"):
+            s_msg = st.text_input("Хабарлама жазу:", key="student_chat_input")
+            if st.button("Хабарлама жіберу", key="s_send_chat_btn"):
                 s_msg_str = str(s_msg) if s_msg is not None else ""
                 if s_msg_str and s_msg_str.strip():
-                    is_banned = check_bad_words_and_ban(user, s_msg_str)
-                    if is_banned:
-                        st.error("⛔ Сіздің хабарламаңыздан тыйым салынған сөздер табылды! Жүйе ережесі бойынша чаттағы аккаунтыңыз 15 күнге бұғатталды.")
-                    else:
+                    if not check_bad_words_and_ban(user, s_msg_str):
                         chat_messages.append({
-                            "user": f"{user} (Оқушы)",
+                            "user": user,
                             "text": s_msg_str,
                             "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                         })
                         save_data(st.session_state.app_data)
                         st.rerun()
-                else:
-                    st.error("Хабарлама бос болмауы тиіс.")
+                    else:
+                        st.error("⚠️ Қасақана дөрекі немесе тыйым салынған сөздер қолданғаныңыз үшін 15 күнге чаттан басталдыңыз!")
 
         with tab_s5:
-            st.subheader("📝 Директорға немесе мұғалімге заява (өтініш) жазу")
-            app_text = st.text_area("Заяваның мәтіні:", key="student_app_text_field")
-            if st.button("Заяваны жіберу"):
-                app_text_str = str(app_text) if app_text is not None else ""
-                if app_text_str and app_text_str.strip():
+            st.subheader("📝 Директорға немесе Мұғалімге заява жазу")
+            app_text_input = st.text_area("Заява немесе өтініш мәтіні:")
+            if st.button("Заява жіберу"):
+                if app_text_input and app_text_input.strip():
                     if "applications" not in st.session_state.app_data:
                         st.session_state.app_data["applications"] = []
                     st.session_state.app_data["applications"].append({
                         "student": user,
-                        "text": app_text_str,
+                        "text": app_text_input,
                         "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
                     save_data(st.session_state.app_data)
-                    st.success("Заява сәтті жіберілді!")
+                    st.success("Заява директоры мен мұғалімдерге сәтті жіберілді!")
                 else:
-                    st.error("Заява мәтіні бос болмауы тиіс.")
+                    st.error("Мәтін бос болмауы тиіс.")
 
         with tab_s6:
-            st.subheader("⚖️ Мен жіберген аппеляциялар")
+            st.subheader("⚖️ Менің жіберген аппеляцияларыım")
             appeals = st.session_state.app_data.get("appeals", [])
-            my_appeals = [ap for ap in appeals if ap['student'] == user]
-            if my_appeals:
-                for ap in reversed(my_appeals):
-                    st.write(f"📚 **Пән:** {ap['subject']} | 🕒 **Уақыты:** {ap['time']}")
-                    st.markdown(f"> {ap['text']}")
+            my_apps = [a for a in appeals if a['student'] == user]
+            if my_apps:
+                for ma in my_apps:
+                    st.write(f"📚 Пән: **{ma['subject']}** | 🕒 {ma['time']}")
+                    st.markdown(f"> {ma['text']}")
                     st.divider()
             else:
-                st.info("Сіз әзірге аппеляция жіберген жоқсыз.")
+                st.info("Сіз әзірге ешқандай аппеляция жібермедіңіз.")
 
         with tab_s7:
             st.subheader("📬 Хабарландырулар")
-            st.info("Жаңа хабарландырулар жоқ.")
+            st.info("Жаңа хабарландырулар мен жаңартулар осында шығады.")
 
         with tab_s8:
-            st.subheader("⚔️ Оқушылар арасындағы дуэль")
-            duel_qs = st.session_state.app_data["duel_questions"]
-            if duel_qs:
-                opponent = st.selectbox("Қарсыласты таңдаңыз", [u for u in users_db if u != user and users_db[u]["role"] == "Student"])
-                if opponent:
-                    if st.button("Дуэльді бастау"):
-                        st.session_state.active_duel = {"opponent": opponent, "score": 0, "q_idx": 0}
-                        st.rerun()
-                    
-                    if st.session_state.active_duel:
-                        q_idx = st.session_state.active_duel["q_idx"]
-                        if q_idx < len(duel_qs):
-                            dq = duel_qs[q_idx]
-                            st.write(f"**Дуэль сұрағы {q_idx+1}:** {dq['text']}")
-                            d_ans = st.radio("Жауапты таңдаңыз:", ["A", "B", "C", "D"], key=f"duel_q_{q_idx}")
-                            if st.button("Жауапты жіберу"):
-                                if d_ans in dq['correct']:
-                                    st.session_state.active_duel["score"] += 1
-                                    st.success("Дұрыс!")
-                                else:
-                                    st.error("Қате!")
-                                st.session_state.active_duel["q_idx"] += 1
-                                st.rerun()
-                        else:
-                            final_score = st.session_state.active_duel["score"]
-                            st.session_state.app_data["duel_results"].append({
-                                "student": user,
-                                "opponent": st.session_state.active_duel["opponent"],
-                                "score": final_score,
-                                "date": datetime.now().strftime("%Y-%m-%d %H:%M")
-                            })
-                            save_data(st.session_state.app_data)
-                            st.balloons()
-                            st.success(f"Дуэль аяқталды! Сіздің жинаған ұпайыңыз: {final_score}")
-                            if st.button("Дуэльді жабу"):
-                                st.session_state.active_duel = None
-                                st.rerun()
+            st.subheader("⚔️ Дуэль ойыны (Досыңызбен жарысыңыз)")
+            d_questions = st.session_state.app_data.get("duel_questions", [])
+            if d_questions:
+                duel_q = random.choice(d_questions)
+                st.write(f"⚔️ **Дуэль сұрағы:** {duel_q['text']}")
+                for dk, dv in duel_q['options'].items():
+                    st.write(f"{dk}) {dv}")
+                d_ans = st.multiselect("Дуэль жауабы", ["A", "B", "C", "D"], key="duel_answer_select")
+                if st.button("Дуэль жауабын тапсыру"):
+                    if set(d_ans) == set(duel_q['correct']):
+                        st.success("🎉 Дұрыс жауап! Дуэльде жеңіске жеттіңіз!")
+                    else:
+                        st.error("❌ Қате жауап!")
             else:
-                st.info("Әзірге дуэль сұрақтары қосылмаған. Директордан сұрақ қосуын өтініңіз.")
+                st.info("Әзірге дуэль сұрақтары жоқ. Директор дуэль сұрақтарын қосуы керек.")

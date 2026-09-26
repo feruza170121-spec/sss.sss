@@ -720,7 +720,7 @@ else:
         with tab_s5:
             st.subheader("📝 Директорға немесе мұғалімге заява (өтініш) жазу")
             with st.form("application_form", clear_on_submit=True):
-                app_text = st.form_submit_button = st.text_area("Заяваның мәтіні:")
+                app_text = st.text_area("Заяваның мәтіні:")
                 if st.form_submit_button("Заяваны жіберу"):
                     if isinstance(app_text, str) and app_text.strip():
                         if "applications" not in st.session_state.app_data:
@@ -732,6 +732,8 @@ else:
                         })
                         save_data(st.session_state.app_data)
                         st.success("Заява сәтті жіберілді!")
+                    else:
+                        st.error("Заява мәтіні бос болмауы тиіс.")
 
         with tab_s6:
             st.subheader("⚖️ Мен жіберген аппеляциялар")

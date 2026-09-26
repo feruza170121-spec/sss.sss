@@ -19,8 +19,8 @@ def load_data():
             "student": {"password": "123", "role": "Student", "limit": None}
         },
         "questions": [
-            {"id": 1, "subject": "Mathematics", "text": "What is 2 + 2?", "options": ["3", "4", "5", "6"], "correct": "4", "image": None},
-            {"id": 2, "subject": "Physics", "text": "What is the unit of force?", "options": ["Joule", "Newton", "Watt", "Pascal"], "correct": "Newton", "image": None}
+            {"id": 1, "subject": "Математикалық сауаттылық", "text": "2 + 2 нешеге тең?", "options": ["3", "4", "5", "6"], "correct": "4", "image": None},
+            {"id": 2, "subject": "Физика", "text": "Күштің өлшем бірлігі қандай?", "options": ["Джоуль", "Ньютон", "Ватт", "Паскаль"], "correct": "Ньютон", "image": None}
         ],
         "login_logs": [],
         "settings": {
@@ -31,8 +31,6 @@ def load_data():
     }
 
 def save_data(data):
-    # Streamlit file uploader objects cannot be serialized directly to JSON, so we handle images safely
-    # For simplicity in file storage, we save text-based question data
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
@@ -56,14 +54,13 @@ def send_whatsapp_alert(phone, message):
     if not phone:
         return
     try:
-        # CallMeBot немесе басқа ашық API арқылы WhatsApp-қа хабарлама жіберу логикасы
         encoded_message = urllib.parse.quote(message)
         url = f"https://api.callmebot.com/whatsapp.php?phone={phone}&text={encoded_message}&apikey=free"
         requests.get(url, timeout=3)
     except Exception:
         pass
 
-# Бет конфигурациясы және дизайн
+# Бет конфигурациясы және дизайн (Қара фон, жасыл мәтіндер)
 st.set_page_config(page_title="UBT.kz - Secure System", layout="centered")
 
 st.markdown("""
@@ -93,7 +90,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Жүйеге кіру беті
+# Жүйеге кіру беті (Логин мен пароль жазатын жер ағылшынша)
 if not st.session_state.logged_in:
     st.title("🔐 UBT.kz Secure Login")
     
@@ -123,7 +120,6 @@ if not st.session_state.logged_in:
             role = users_db[username]["role"]
             time_str = now.strftime("%Y-%m-%d %H:%M:%S")
             
-            # Логқа жазу
             st.session_state.app_data["login_logs"].append({
                 "user": username,
                 "role": role,
@@ -131,11 +127,10 @@ if not st.session_state.logged_in:
             })
             save_data(st.session_state.app_data)
             
-            # Егер директор кірсе, WhatsApp-қа хабарлама жіберу
             if role == "Director":
                 ph = st.session_state.app_data["settings"].get("whatsapp_phone", "")
                 if ph:
-                    msg = f"Alert: Director ({username}) logged into the system at {time_str}!"
+                    msg = f"Назар аударыңыз: Директор ({username}) жүйеге кірді! Уақыты: {time_str}"
                     send_whatsapp_alert(ph, msg)
             
             st.rerun()
@@ -148,78 +143,78 @@ if not st.session_state.logged_in:
             
             if st.session_state.login_attempts[username] >= 10:
                 st.session_state.blocked_users[username] = now + timedelta(minutes=30)
-                st.error("Password entered incorrectly 10 times! Account is blocked for 30 minutes.")
+                st.error("Құпия сөз 10 рет қате енгізілді! Аккаунт 30 минутқа бұғатталды.")
             else:
-                st.error(f"Invalid credentials! Attempts left: {attempts_left}")
+                st.error(f"Қате логин немесе пароль! Қалған әрекеттер саны: {attempts_left}")
 
 else:
     user = st.session_state.current_user
     users_db = st.session_state.app_data["users"]
     role = users_db[user]["role"]
     
-    st.sidebar.title(f"Welcome, {user}!")
-    st.sidebar.text(f"Role: {role}")
+    st.sidebar.title(f"Қош келдіңіз, {user}!")
+    st.sidebar.text(f"Рөлі: {role}")
     
-    if st.sidebar.button("Logout"):
+    if st.sidebar.button("Жүйеден шығу"):
         st.session_state.logged_in = False
         st.session_state.current_user = None
         st.session_state.student_direction = None
         st.rerun()
 
-    # Директор панелі
+    # Директор панелі (Толық қазақ тілінде)
     if role == "Director":
-        st.title("👑 Director Full Access Panel")
+        st.title("👑 Директордың басқару панелі")
         
-        tab1, tab2, tab3, tab4, tab5 = st.tabs(["Users & Logs", "Teacher Limits", "Manage Questions", "Credentials & WhatsApp", "Settings & Timer"])
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["Қолданушылар мен Логтар", "Мұғалім Лимиттері", "Сұрақтарды Басқару", "Құпия сөз және WhatsApp", "Баптаулар және Таймер"])
         
         with tab1:
-            st.subheader("📋 Login Logs")
+            st.subheader("📋 Кіру тарихы (Логтар)")
             logs = st.session_state.app_data["login_logs"]
             if logs:
                 for log in reversed(logs):
-                    st.write(f"- **User:** {log['user']} | **Role:** {log['role']} | **Time:** {log['time']}")
+                    st.write(f"- **Қолданушы:** {log['user']} | **Рөлі:** {log['role']} | **Кірген уақыты:** {log['time']}")
             else:
-                st.write("No login activity yet.")
+                st.write("Әзірге кіру әрекеттері жоқ.")
                 
-            st.subheader("👥 All System Users")
+            st.subheader("👥 Барлық қолданушылар")
             for u, data in users_db.items():
-                st.write(f"- **User:** {u} | **Role:** {data['role']} | **Limit:** {data['limit']}")
+                st.write(f"- **Қолданушы:** {u} | **Рөлі:** {data['role']} | **Лимиті:** {data['limit']}")
 
         with tab2:
-            st.subheader("⚙️ Teacher Limit Management")
+            st.subheader("⚙️ Мұғалімдердің уақыт лимитін басқару")
             teacher_list = [u for u, data in users_db.items() if data["role"] == "Teacher"]
             if teacher_list:
-                t_name = st.selectbox("Select Teacher", teacher_list)
+                t_name = st.selectbox("Мұғалімді таңдаңыз", teacher_list)
                 col1, col2 = st.columns(2)
                 with col1:
-                    if st.button("Grant 1-Month Limit"):
+                    if st.button("1 Айлық лимит беру"):
                         users_db[t_name]["limit"] = (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d %H:%M')
                         save_data(st.session_state.app_data)
-                        st.success(f"Granted to {t_name}!")
+                        st.success(f"{t_name} үшін лимит берілді!")
                 with col2:
-                    if st.button("Revoke Limit"):
+                    if st.button("Лимитті алып тастау"):
                         users_db[t_name]["limit"] = None
                         save_data(st.session_state.app_data)
-                        st.warning(f"Revoked for {t_name}!")
+                        st.warning(f"{t_name} лимиті жойылды!")
             else:
-                st.write("No teachers available.")
+                st.write("Мұғалімдер жоқ.")
 
         with tab3:
-            st.subheader("📚 Question Bank Management")
-            sub_filter = st.selectbox("Filter by Subject", ["All", "Mathematical Literacy", "Reading Literacy", "History of Kazakhstan", "Mathematics", "Physics", "Biology", "Chemistry", "English", "World History", "Geography"])
+            st.subheader("📚 Сұрақтар базасы")
+            sub_filter = st.selectbox("Пән бойынша сүзгілеу", ["Барлығы", "Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
             
             with st.form("add_question_form"):
-                st.write("Add New Question")
-                q_sub = st.selectbox("Subject", ["Mathematical Literacy", "Reading Literacy", "History of Kazakhstan", "Mathematics", "Physics", "Biology", "Chemistry", "English", "World History", "Geography"])
-                q_text = st.text_area("Question Text")
-                q_img = st.file_uploader("Upload Image (Optional)", type=["png", "jpg", "jpeg"])
-                opt1 = st.text_input("Option 1")
-                opt2 = st.text_input("Option 2")
-                opt3 = st.text_input("Option 3")
-                opt4 = st.text_input("Option 4")
-                correct = st.text_input("Correct Answer (Exact match)")
+                st.write("Жаңа сұрақ қосу")
+                q_sub = st.selectbox("Пәні", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
+                q_text = st.text_area("Сұрақ мәтіні")
+                q_img = st.file_uploader("Сурет жүктеу (Міндетті емес)", type=["png", "jpg", "jpeg"])
+                opt1 = st.text_input("1-ші жауап")
+                opt2 = st.text_input("2-ші жауап")
+                opt3 = st.text_input("3-ші жауап")
+                opt4 = st.text_input("4-ші жауап")
+                correct = st.text_input("Дұрыс жауап (дәл жазылуы тиіс)")
                 
-                submitted = st.form_submit_button("Save Question")
+                submitted = st.form_submit_button("Сұрақты сақтау")
                 if submitted:
                     questions_list = st.session_state.app_data["questions"]
                     new_id = max([q["id"] for q in questions_list], default=0) + 1
@@ -229,145 +224,144 @@ else:
                         "text": q_text,
                         "options": [opt1, opt2, opt3, opt4],
                         "correct": correct,
-                        "image": None # File object handled or omitted in JSON
+                        "image": None
                     })
                     save_data(st.session_state.app_data)
-                    st.success("Question added successfully!")
+                    st.success("Сұрақ сәтті қосылды!")
             
             st.divider()
-            st.subheader("Existing Questions List")
+            st.subheader("Бар сұрақтар тізімі")
             questions_list = st.session_state.app_data["questions"]
-            filtered_qs = questions_list if sub_filter == "All" else [q for q in questions_list if q["subject"] == sub_filter]
+            filtered_qs = questions_list if sub_filter == "Барлығы" else [q for q in questions_list if q["subject"] == sub_filter]
             
             for q in filtered_qs:
                 col_q1, col_q2, col_q3 = st.columns([4, 1, 1])
                 with col_q1:
                     st.write(f"**ID: {q['id']} | [{q['subject']}]** {q['text']}")
                 with col_q2:
-                    if st.button("Edit", key=f"edit_{q['id']}"):
-                        st.info(f"Editing question ID {q['id']}")
+                    if st.button("Өзгерту", key=f"edit_{q['id']}"):
+                        st.info(f"ID {q['id']} сұрағын өңдеу")
                 with col_q3:
-                    if st.button("Delete", key=f"del_{q['id']}"):
+                    if st.button("Өшіру", key=f"del_{q['id']}"):
                         st.session_state.app_data["questions"] = [item for item in questions_list if item["id"] != q["id"]]
                         save_data(st.session_state.app_data)
                         st.rerun()
 
         with tab4:
-            st.subheader("🔑 Credentials & WhatsApp Alert Setup")
+            st.subheader("🔑 Құпия сөз және WhatsApp хабарлама баптауы")
             
-            # WhatsApp phone number configuration (entered once)
             current_phone = st.session_state.app_data["settings"].get("whatsapp_phone", "")
-            phone_input = st.text_input("Your WhatsApp Phone Number (with country code, e.g. 77012345678)", value=current_phone)
-            if st.button("Save WhatsApp Number (Once)"):
+            phone_input = st.text_input("WhatsApp нөміріңіз (мысалы: 77012345678)", value=current_phone)
+            if st.button("WhatsApp нөмірін сақтау (1 рет жазасыз)"):
                 st.session_state.app_data["settings"]["whatsapp_phone"] = phone_input
                 save_data(st.session_state.app_data)
-                st.success("WhatsApp number successfully saved!")
+                st.success("WhatsApp нөмірі сәтті сақталды!")
 
             st.divider()
-            target_user = st.selectbox("Select User to Modify/Delete", list(users_db.keys()))
-            new_pass = st.text_input("New Password", type="password")
-            if st.button("Update Password"):
+            target_user = st.selectbox("Өзгертетін қолданушыны таңдаңыз", list(users_db.keys()))
+            new_pass = st.text_input("Жаңа құпия сөз", type="password")
+            if st.button("Парольді жаңарту"):
                 users_db[target_user]["password"] = new_pass
                 save_data(st.session_state.app_data)
-                st.success(f"Password updated for {target_user}!")
+                st.success(f"{target_user} құпия сөзі өзгертілді!")
                 
             if target_user != "director":
-                if st.button(f"Delete User: {target_user}", type="primary"):
+                if st.button(f"Қолданушыны өшіру: {target_user}", type="primary"):
                     del users_db[target_user]
                     save_data(st.session_state.app_data)
-                    st.success(f"User {target_user} deleted!")
+                    st.success(f"{target_user} жойылды!")
                     st.rerun()
             
             st.divider()
-            st.subheader("➕ Create New User")
-            new_u_name = st.text_input("New Username")
-            new_u_pass = st.text_input("New User Password", type="password")
-            new_u_role = st.selectbox("Role", ["Teacher", "Student"])
-            if st.button("Create User"):
+            st.subheader("➕ Жаңа қолданушы қосу")
+            new_u_name = st.text_input("Жаңа логин")
+            new_u_pass = st.text_input("Жаңа құпия сөз", type="password")
+            new_u_role = st.selectbox("Рөлі", ["Teacher", "Student"])
+            if st.button("Қолданушы жасау"):
                 if new_u_name and new_u_name not in users_db:
                     users_db[new_u_name] = {"password": new_u_pass, "role": new_u_role, "limit": None}
                     save_data(st.session_state.app_data)
-                    st.success(f"User {new_u_name} created!")
+                    st.success(f"{new_u_name} қолданушысы құрылды!")
                 else:
-                    st.error("Invalid username or already exists.")
+                    st.error("Қате логин немесе бұл ат бұрыннан бар.")
 
         with tab5:
-            st.subheader("⏱️ Test Timer Control")
+            st.subheader("⏱️ Тест таймерін басқару")
             settings = st.session_state.app_data["settings"]
-            settings["timer_enabled"] = st.checkbox("Enable Global Test Timer for Students", value=settings["timer_enabled"])
-            settings["timer_duration"] = st.number_input("Test Duration (Minutes)", min_value=1, max_value=180, value=settings["timer_duration"])
+            settings["timer_enabled"] = st.checkbox("Оқушылар үшін таймерді қосу", value=settings["timer_enabled"])
+            settings["timer_duration"] = st.number_input("Тест уақыты (минут)", min_value=1, max_value=180, value=settings["timer_duration"])
             save_data(st.session_state.app_data)
-            st.success("Timer settings updated!")
+            st.success("Таймер баптаулары сақталды!")
 
     # Мұғалім панелі
     elif role == "Teacher":
         limit = users_db[user]["limit"]
         if limit and datetime.now() > datetime.strptime(limit, '%Y-%m-%d %H:%M'):
-            st.error("Your 1-month access limit has expired! Please contact the Director.")
+            st.error("Сіздің 1 айлық қолжетімділік лимитіңіз аяқталды! Директорға хабарласыңыз.")
             st.stop()
 
-        st.title("📚 Teacher Panel")
-        st.write("Here you can manage and view questions.")
+        st.title("📚 Мұғалім панелі")
+        st.write("Мұнда сұрақтар қосып, басқара аласыз.")
         
-        t_sub = st.selectbox("Select Subject", ["Mathematical Literacy", "Reading Literacy", "History of Kazakhstan", "Mathematics", "Physics", "Biology", "Chemistry", "English", "World History", "Geography"])
-        t_text = st.text_area("Question Text")
-        o1 = st.text_input("Option 1")
-        o2 = st.text_input("Option 2")
-        o3 = st.text_input("Option 3")
-        o4 = st.text_input("Option 4")
-        ans = st.text_input("Correct Answer")
+        t_sub = st.selectbox("Пәнді таңдаңыз", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
+        t_text = st.text_area("Сұрақ мәтіні")
+        o1 = st.text_input("1-ші жауап")
+        o2 = st.text_input("2-ші жауап")
+        o3 = st.text_input("3-ші жауап")
+        o4 = st.text_input("4-ші жауап")
+        ans = st.text_input("Дұрыс жауап")
         
-        if st.button("Add Question"):
+        if st.button("Сұрақ қосу"):
             questions_list = st.session_state.app_data["questions"]
             new_id = max([q["id"] for q in questions_list], default=0) + 1
             questions_list.append({
                 "id": new_id, "subject": t_sub, "text": t_text, "options": [o1, o2, o3, o4], "correct": ans, "image": None
             })
             save_data(st.session_state.app_data)
-            st.success("Question added successfully!")
+            st.success("Сұрақ сәтті қосылды!")
 
     # Оқушы панелі
     elif role == "Student":
-        st.title("🎓 Student Testing Panel")
+        st.title("🎓 Оқушының тест тапсыру панелі")
         
         settings = st.session_state.app_data["settings"]
         if settings["timer_enabled"]:
-            st.markdown(f"### ⏳ Timer Status: Enabled ({settings['timer_duration']} Minutes)")
+            st.markdown(f"### ⏳ Таймер күйі: Қосулы ({settings['timer_duration']} минут)")
         else:
-            st.markdown("### ⏳ Timer Status: Disabled by Director")
+            st.markdown("### ⏳ Таймер күйі: Директор өшірген")
 
         if st.session_state.student_direction is None:
-            st.subheader("Select your exam profile direction:")
-            direction = st.selectbox("Choose direction", ["Select...", "Math - Physics", "Biology - Chemistry", "English - History", "Geography - Math"])
+            st.subheader("Тест бағытын таңдаңыз:")
+            direction = st.selectbox("Бағытты таңдау", ["Таңдаңыз...", "Математика - Физика", "Биология - Химия", "Ағылшын - Тарих", "География - Математика"])
             
-            if direction != "Select...":
-                if st.button("Confirm Direction"):
+            if direction != "Таңдаңыз...":
+                if st.button("Бағытты растау"):
                     st.session_state.student_direction = direction
                     st.rerun()
         else:
-            st.write(f"**Your selected direction:** {st.session_state.student_direction}")
-            if st.button("Change Direction"):
+            st.write(f"**Таңдалған бағытыңыз:** {st.session_state.student_direction}")
+            if st.button("Бағытты өзгерту"):
                 st.session_state.student_direction = None
                 st.rerun()
                 
             st.divider()
-            st.subheader("Choose a subject to take tests separately:")
+            st.subheader("Тест тапсыратын пәнді таңдаңыз:")
             
-            mandatory_subjects = ["Mathematical Literacy", "Reading Literacy", "History of Kazakhstan"]
+            mandatory_subjects = ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы"]
             direction_map = {
-                "Math - Physics": ["Mathematics", "Physics"],
-                "Biology - Chemistry": ["Biology", "Chemistry"],
-                "English - History": ["English", "World History"],
-                "Geography - Math": ["Geography", "Mathematics"]
+                "Математика - Физика": ["Математика", "Физика"],
+                "Биология - Химия": ["Биология", "Химия"],
+                "Ағылшын - Тарих": ["Ағылшын тілі", "Дүние жүзі тарихы"],
+                "География - Математика": ["География", "Математика"]
             }
             
             profile_subjects = direction_map.get(st.session_state.student_direction, [])
             all_subjects = mandatory_subjects + profile_subjects
             
-            selected_subject = st.selectbox("Subjects", ["Select subject..."] + all_subjects)
+            selected_subject = st.selectbox("Пәндер", ["Пәнді таңдаңыз..."] + all_subjects)
             
-            if selected_subject != "Select subject...":
-                st.info(f"Taking test for: **{selected_subject}**")
+            if selected_subject != "Пәнді таңдаңыз...":
+                st.info(f"Таңдалған пән: **{selected_subject}**")
                 
                 questions_list = st.session_state.app_data["questions"]
                 subject_questions = [q for q in questions_list if q["subject"] == selected_subject]
@@ -379,20 +373,20 @@ else:
                         user_answers = {}
                         
                         for i, q in enumerate(shuffled_questions):
-                            st.write(f"**Question {i+1}:** {q['text']}")
+                            st.write(f"**Сұрақ {i+1}:** {q['text']}")
                             
                             shuffled_options = q['options'].copy()
                             random.shuffle(shuffled_options)
                             
-                            user_answers[q['id']] = st.radio(f"Select answer for Q{i+1}", shuffled_options, key=f"q_{q['id']}")
+                            user_answers[q['id']] = st.radio(f"Жауапты таңдаңыз (Сұрақ {i+1})", shuffled_options, key=f"q_{q['id']}")
                             st.divider()
                             
-                        submit_test = st.form_submit_button("Submit Test")
+                        submit_test = st.form_submit_button("Тестті аяқтау және тапсыру")
                         if submit_test:
                             correct_count = 0
                             for q in shuffled_questions:
                                 if user_answers.get(q['id']) == q['correct']:
                                     correct_count += 1
-                            st.success(f"Test submitted! Your score: {correct_count} / {len(shuffled_questions)}")
+                            st.success(f"Тест аяқталды! Сіздің жинаған балыңыз: {correct_count} / {len(shuffled_questions)}")
                 else:
-                    st.warning("No questions available for this subject yet.")
+                    st.warning("Бұл пән бойынша әзірге сұрақтар жоқ.")

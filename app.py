@@ -1,45 +1,61 @@
 import streamlit as st
 from datetime import datetime
 
-# Қара фон мен жасыл мәтінге арналған CSS стильдері
-st.markdown("""
+# Бүйірлік панельде дизайн режимін таңдау (Түн және Күн режимі)
+st.sidebar.title("🎨 Дизайн баптауы")
+theme = st.sidebar.radio("Режимді таңдаңыз:", ["🌙 Түн режимі (Қара фон / Жасыл сөздер)", "☀️ Күн режимі (Ақ фон / Қара сөздер)"])
+
+# Режимге байланысты түстерді анықтау
+if theme.startswith("🌙"):
+    bg_color = "#0e1117"
+    text_color = "#00FF66"
+    input_bg = "#1a1c23"
+    sidebar_bg = "#12161f"
+else:
+    bg_color = "#ffffff"
+    text_color = "#000000"
+    input_bg = "#f0f2f6"
+    sidebar_bg = "#f8f9fa"
+
+# Динамикалық CSS стильдері (Сіз жіберген стильдерді режимге сай бейімдедім)
+st.markdown(f"""
     <style>
-    /* Негізгі фонды қара түске өзгерту */
-    .stApp {
-        background-color: #0e1117;
-        color: #00FF66;
-    }
+    /* Негізгі фон мен мәтін түсі */
+    .stApp {{
+        background-color: {bg_color};
+        color: {text_color};
+    }}
     
-    /* Барлық мәтіндер мен тақырыптарды жасыл ету */
-    h1, h2, h3, h4, h5, h6, p, span, label, div {
-        color: #00FF66 !important;
-    }
+    /* Барлық мәтіндер мен тақырыптар */
+    h1, h2, h3, h4, h5, h6, p, span, label, div {{
+        color: {text_color} !important;
+    }}
     
     /* Мәтін енгізетін өрістер мен аймақтар */
-    .stTextInput input, .stTextArea textarea {
-        background-color: #1a1c23 !important;
-        color: #00FF66 !important;
-        border: 1px solid #00FF66 !important;
-    }
+    .stTextInput input, .stTextArea textarea {{
+        background-color: {input_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {text_color} !important;
+    }}
     
     /* Кнопкалардың түсі */
-    .stButton button {
-        background-color: #00FF66 !important;
-        color: #0e1117 !important;
+    .stButton button {{
+        background-color: {text_color} !important;
+        color: {bg_color} !important;
         font-weight: bold;
-    }
+    }}
     
     /* Sidebar (Бүйірлік панель) дизайны */
-    [data-testid="stSidebar"] {
-        background-color: #12161f;
-    }
-    [data-testid="stSidebar"] * {
-        color: #00FF66 !important;
-    }
+    [data-testid="stSidebar"] {{
+        background-color: {sidebar_bg};
+    }}
+    [data-testid="stSidebar"] * {{
+        color: {text_color} !important;
+    }}
     </style>
 """, unsafe_allow_html=True)
 
-# Жүйенің қалған бөлігі (алдыңғы код)
+# Жүйенің сіз жіберген код бөлігі
 def run_student_tabs(user, save_data, check_bad_words_and_ban):
     tab_s4, tab_s5, tab_s6, tab_s7 = st.tabs(["💬 Ортақ чат", "📝 Заява", "⚖️ Аппеляция", "📬 Хабарландырулар"])
     

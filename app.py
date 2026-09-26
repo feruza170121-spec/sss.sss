@@ -320,28 +320,28 @@ else:
 
         with tab3:
             st.subheader("📚 Жалпы тест сұрақтарын басқару")
-            with st.form("dir_q"):
-                q_sub = st.selectbox("Пән", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
-                q_text = st.text_area("Сұрақ")
-                opt_a = st.text_input("A")
-                opt_b = st.text_input("B")
-                opt_c = st.text_input("C")
-                opt_d = st.text_input("D")
-                c_a = st.checkbox("A дұрыс")
-                c_b = st.checkbox("B дұрыс")
-                c_c = st.checkbox("C дұрыс")
-                c_d = st.checkbox("D дұрыс")
-                if st.form_submit_button("Қосу"):
-                    corrects = []
-                    if c_a: corrects.append("A")
-                    if c_b: corrects.append("B")
-                    if c_c: corrects.append("C")
-                    if c_d: corrects.append("D")
-                    qs = st.session_state.app_data["questions"]
-                    new_id = max([q["id"] for q in qs], default=0) + 1
-                    qs.append({"id": new_id, "subject": q_sub, "text": q_text, "options": {"A": opt_a, "B": opt_b, "C": opt_c, "D": opt_d}, "correct": corrects})
-                    save_data(st.session_state.app_data)
-                    st.success("Сәтті қосылды!")
+            q_sub = st.selectbox("Пән", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
+            q_text = st.text_area("Сұрақ", key="dir_q_text")
+            opt_a = st.text_input("A", key="dir_opt_a")
+            opt_b = st.text_input("B", key="dir_opt_b")
+            opt_c = st.text_input("C", key="dir_opt_c")
+            opt_d = st.text_input("D", key="dir_opt_d")
+            c_a = st.checkbox("A дұрыс", key="dir_c_a")
+            c_b = st.checkbox("B дұрыс", key="dir_c_b")
+            c_c = st.checkbox("C дұрыс", key="dir_c_c")
+            c_d = st.checkbox("D дұрыс", key="dir_c_d")
+            
+            if st.button("Қосу", key="dir_add_q_btn"):
+                corrects = []
+                if c_a: corrects.append("A")
+                if c_b: corrects.append("B")
+                if c_c: corrects.append("C")
+                if c_d: corrects.append("D")
+                qs = st.session_state.app_data["questions"]
+                new_id = max([q["id"] for q in qs], default=0) + 1
+                qs.append({"id": new_id, "subject": q_sub, "text": q_text, "options": {"A": opt_a, "B": opt_b, "C": opt_c, "D": opt_d}, "correct": corrects})
+                save_data(st.session_state.app_data)
+                st.success("Сәтті қосылды!")
 
         with tab4:
             st.subheader("⚔️ Дуэль сұрақтары мен уақытын басқару")
@@ -721,7 +721,6 @@ else:
 
         with tab_s5:
             st.subheader("📝 Директорға немесе мұғалімге заява (өтініш) жазу")
-            # Заява бөлімі де формадан тазартылып, тұрақты түймеге ауыстырылды (TypeError кетпес үшін)
             app_text = st.text_area("Заяваның мәтіні:", key="student_app_text_field")
             if st.button("Заяваны жіберу"):
                 app_text_str = str(app_text) if app_text is not None else ""

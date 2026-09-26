@@ -184,7 +184,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
-    st.title("🌌 T.A.S UBT.kz | Cosmic Auth")
+    st.title("🌌 T.A.S UBT.kz")
     st.markdown("Жүйеге кіру үшін логин мен пароліңізді жазыңыз:")
     
     username = st.text_input("Username", key="login_username")

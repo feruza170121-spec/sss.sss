@@ -5,18 +5,12 @@ import json
 import os
 import requests
 import urllib.parse
-from PIL import Image
-import io
-import base64
 import pandas as pd
 
 DATA_FILE = "ubt_system_data.json"
 
 def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {
+    default_data = {
         "users": {
             "director": {"password": "123", "role": "Director", "limit": None, "blocked": False},
             "teacher1": {"password": "123", "role": "Teacher", "limit": None, "blocked": False},
@@ -27,9 +21,9 @@ def load_data():
         "login_logs": [],
         "results": [],
         "feedback": [],
-        "friends": {},  # {student_name: [friend1, friend2]}
-        "notifications": {},  # {student_name: [msg1, msg2]}
-        "duels": [],  # Дуэльдер тарихы
+        "friends": {},
+        "notifications": {},
+        "duels": [],
         "settings": {
             "timer_enabled": False,
             "timer_duration": 20,
@@ -37,6 +31,18 @@ def load_data():
             "allow_export": False
         }
     }
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            try:
+                loaded = json.load(f)
+                # Жетпей тұрған жаңа кілттерді автоматты түрде толықтыру
+                for key in default_data:
+                    if key not in loaded:
+                        loaded[key] = default_data[key]
+                return loaded
+            except Exception:
+                return default_data
+    return default_data
 
 def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
@@ -347,7 +353,6 @@ else:
             st.subheader("🏆 Жалпы рейтинг және оқушыларды салыстыру")
             results = st.session_state.app_data.get("results", [])
             
-            # Барлық оқушылардың орташа ұпайын немесе жиынтық ұпайын есептеу
             student_stats = {}
             for r in results:
                 s = r['student']
@@ -357,7 +362,6 @@ else:
                 student_stats[s]["total_possible"] += r['total']
                 student_stats[s]["tests"] += 1
             
-            # Рейтинг құрастыру
             ranking_list = []
             for s, data in student_stats.items():
                 pct = (data["total_score"] / data["total_possible"] * 100) if data["total_possible"] > 0 else 0
@@ -379,7 +383,6 @@ else:
                     my_rank = ranking_list.index(my_data) + 1
                     st.success(f"Сіз қазіргі уақытта сайтта **{my_rank}-орындасыз**! Проценттік көрсеткішіңіз: **{my_data['percentage']:.1f}%**")
                     
-                    # Басқалармен салыстыру
                     for item in ranking_list:
                         if item['student'] != user:
                             diff = my_data['percentage'] - item['percentage']

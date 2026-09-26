@@ -5,6 +5,9 @@ import json
 import os
 import requests
 import urllib.parse
+from PIL import Image
+import io
+import base64
 
 DATA_FILE = "ubt_system_data.json"
 
@@ -18,10 +21,7 @@ def load_data():
             "teacher1": {"password": "123", "role": "Teacher", "limit": None},
             "student": {"password": "123", "role": "Student", "limit": None}
         },
-        "questions": [
-            {"id": 1, "subject": "Математикалық сауаттылық", "text": "2 + 2 нешеге тең?", "options": ["3", "4", "5", "6"], "correct": "4"},
-            {"id": 2, "subject": "Физика", "text": "Күштің өлшем бірлігі қандай?", "options": ["Джоуль", "Ньютон", "Ватт", "Паскаль"], "correct": "Ньютон"}
-        ],
+        "questions": [],
         "login_logs": [],
         "settings": {
             "timer_enabled": False,
@@ -101,7 +101,6 @@ if not st.session_state.logged_in:
         now = datetime.now()
         users_db = st.session_state.app_data["users"]
         
-        # 30 минуттық блок тексерісі
         if username in st.session_state.blocked_users:
             unblock_time = st.session_state.blocked_users[username]
             if now < unblock_time:
@@ -166,6 +165,24 @@ else:
     if role == "Director":
         st.title("👑 Директордың басқару панелі")
         
+        whatsapp_phone_saved = st.session_state.app_data["settings"].get("whatsapp_phone", "")
+        
+        # Егер WhatsApp нөмірі әлі жазылмаса, басқа функциялар бұғатталады
+        if not whatsapp_phone_saved:
+            st.warning("⚠️ Назар аударыңыз! Жүйені толық пайдалану үшін төменде WhatsApp нөміріңізді міндетті түрде жазып сақтауыңыз қажет. Нөмір сақталмайынша басқа бөлімдер мен функциялар жұмыс істемейді!")
+            
+            st.subheader("🔑 WhatsApp нөмірін тіркеу (Тек 1 рет жазылады)")
+            phone_input = st.text_input("WhatsApp нөміріңіз (мысалы: 77012345678)", key="initial_whatsapp_input")
+            if st.button("WhatsApp нөмірін мәңгілікке сақтау"):
+                if phone_input:
+                    st.session_state.app_data["settings"]["whatsapp_phone"] = phone_input
+                    save_data(st.session_state.app_data)
+                    st.success("WhatsApp нөмірі сәтті сақталды! Жүйе толық ашылды.")
+                    st.rerun()
+                else:
+                    st.error("Нөмірді бос қалдыруға болмайды!")
+            st.stop() # Басқа вкладкалар мен функциялардың ашылуын тоқтата тұрады
+
         tab1, tab2, tab3, tab4, tab5 = st.tabs(["Қолданушылар мен Логтар", "Мұғалім Лимиттері", "Сұрақтарды Басқару", "Құпия сөз және WhatsApp", "Баптаулар және Таймер"])
         
         with tab1:
@@ -201,32 +218,55 @@ else:
                 st.write("Мұғалімдер жоқ.")
 
         with tab3:
-            st.subheader("📚 Сұрақтар базасы")
+            st.subheader("📚 Сұрақтар базасы (Фото және көп жауапты)")
             sub_filter = st.selectbox("Пән бойынша сүзгілеу", ["Барлығы", "Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="filter_subject_dir")
             
             with st.form("add_question_form_dir"):
                 st.write("Жаңа сұрақ қосу")
                 q_sub = st.selectbox("Пәні", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="new_q_sub")
                 q_text = st.text_area("Сұрақ мәтіні", key="new_q_text")
-                opt1 = st.text_input("1-ші жауап", key="new_opt1")
-                opt2 = st.text_input("2-ші жауап", key="new_opt2")
-                opt3 = st.text_input("3-ші жауап", key="new_opt3")
-                opt4 = st.text_input("4-ші жауап", key="new_opt4")
-                correct = st.text_input("Дұрыс жауап (дәл жазылуы тиіс)", key="new_correct")
+                
+                uploaded_img = st.file_uploader("Сурет қосу (Міндетті емес)", type=["png", "jpg", "jpeg"], key="q_img_upload")
+                
+                opt_a = st.text_input("A нұсқасы", key="new_opt_a")
+                opt_b = st.text_input("B нұсқасы", key="new_opt_b")
+                opt_c = st.text_input("C нұсқасы", key="new_opt_c")
+                opt_d = st.text_input("D нұсқасы", key="new_opt_d")
+                
+                st.write("Дұрыс жауаптарды белгілеңіз (Бірнешеуін таңдауға болады):")
+                c_a = st.checkbox("A", key="chk_a")
+                c_b = st.checkbox("B", key="chk_b")
+                c_c = st.checkbox("C", key="chk_c")
+                c_d = st.checkbox("D", key="chk_d")
                 
                 submitted = st.form_submit_button("Сұрақты сақтау")
                 if submitted:
-                    questions_list = st.session_state.app_data["questions"]
-                    new_id = max([q["id"] for q in questions_list], default=0) + 1
-                    questions_list.append({
-                        "id": new_id,
-                        "subject": q_sub,
-                        "text": q_text,
-                        "options": [opt1, opt2, opt3, opt4],
-                        "correct": correct
-                    })
-                    save_data(st.session_state.app_data)
-                    st.success("Сұрақ сәтті қосылды!")
+                    correct_list = []
+                    if c_a: correct_list.append("A")
+                    if c_b: correct_list.append("B")
+                    if c_c: correct_list.append("C")
+                    if c_d: correct_list.append("D")
+                    
+                    if not correct_list:
+                        st.error("Кем дегенде бір дұрыс жауапты (A, B, C, D) таңдаңыз!")
+                    else:
+                        img_str = None
+                        if uploaded_img is not None:
+                            bytes_data = uploaded_img.getvalue()
+                            img_str = base64.b64encode(bytes_data).decode("utf-8")
+                            
+                        questions_list = st.session_state.app_data["questions"]
+                        new_id = max([q["id"] for q in questions_list], default=0) + 1
+                        questions_list.append({
+                            "id": new_id,
+                            "subject": q_sub,
+                            "text": q_text,
+                            "options": {"A": opt_a, "B": opt_b, "C": opt_c, "D": opt_d},
+                            "correct": correct_list,
+                            "image": img_str
+                        })
+                        save_data(st.session_state.app_data)
+                        st.success("Сұрақ сәтті қосылды!")
             
             st.divider()
             st.subheader("Бар сұрақтар тізімі")
@@ -237,6 +277,10 @@ else:
                 col_q1, col_q2 = st.columns([5, 1])
                 with col_q1:
                     st.write(f"**ID: {q['id']} | [{q['subject']}]** {q['text']}")
+                    if q.get('image'):
+                        img_bytes = base64.b64decode(q['image'])
+                        st.image(Image.open(io.BytesIO(img_bytes)), width=200)
+                    st.write(f"Дұрыс жауап(тар): {', '.join(q['correct'])}")
                 with col_q2:
                     if st.button("Өшіру", key=f"del_q_{q['id']}"):
                         st.session_state.app_data["questions"] = [item for item in questions_list if item["id"] != q["id"]]
@@ -244,14 +288,11 @@ else:
                         st.rerun()
 
         with tab4:
-            st.subheader("🔑 Құпия сөз және WhatsApp хабарлама баптауы")
+            st.subheader("🔑 WhatsApp нөмірі және Құпия сөзді басқару")
             
-            current_phone = st.session_state.app_data["settings"].get("whatsapp_phone", "")
-            phone_input = st.text_input("WhatsApp нөміріңіз (мысалы: 77012345678)", value=current_phone, key="whatsapp_input_setting")
-            if st.button("WhatsApp нөмірін сақтау"):
-                st.session_state.app_data["settings"]["whatsapp_phone"] = phone_input
-                save_data(st.session_state.app_data)
-                st.success("WhatsApp нөмірі сәтті сақталды!")
+            # Нөмір бұрын жазылып қойған болса, тек көру үшін шығады (өзгертпейді)
+            st.text_input("Сақталған WhatsApp нөмірі (Өзгерту мүмкін емес)", value=whatsapp_phone_saved, disabled=True)
+            st.info("ℹ️ WhatsApp нөмірі бір рет қана жазылады және оны кейін өзгертуге болмайды.")
 
             st.divider()
             target_user = st.selectbox("Өзгертетін қолданушыны таңдаңыз", list(users_db.keys()), key="select_user_modify")
@@ -301,20 +342,43 @@ else:
         
         t_sub = st.selectbox("Пәнді таңдаңыз", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="teacher_sub")
         t_text = st.text_area("Сұрақ мәтіні", key="teacher_text")
-        o1 = st.text_input("1-ші жауап", key="t_opt1")
-        o2 = st.text_input("2-ші жауап", key="t_opt2")
-        o3 = st.text_input("3-ші жауап", key="t_opt3")
-        o4 = st.text_input("4-ші жауап", key="t_opt4")
-        ans = st.text_input("Дұрыс жауап", key="t_ans")
+        t_uploaded_img = st.file_uploader("Сурет қосу (Міндетті емес)", type=["png", "jpg", "jpeg"], key="t_img_upload")
+        
+        o_a = st.text_input("A нұсқасы", key="t_opt_a")
+        o_b = st.text_input("B нұсқасы", key="t_opt_b")
+        o_c = st.text_input("C нұсқасы", key="t_opt_c")
+        o_d = st.text_input("D нұсқасы", key="t_opt_d")
+        
+        st.write("Дұрыс жауаптарды белгілеңіз:")
+        tc_a = st.checkbox("A", key="t_chk_a")
+        tc_b = st.checkbox("B", key="t_chk_b")
+        tc_c = st.checkbox("C", key="t_chk_c")
+        tc_d = st.checkbox("D", key="t_chk_d")
         
         if st.button("Сұрақ қосу"):
-            questions_list = st.session_state.app_data["questions"]
-            new_id = max([q["id"] for q in questions_list], default=0) + 1
-            questions_list.append({
-                "id": new_id, "subject": t_sub, "text": t_text, "options": [o1, o2, o3, o4], "correct": ans
-            })
-            save_data(st.session_state.app_data)
-            st.success("Сұрақ сәтті қосылды!")
+            correct_list = []
+            if tc_a: correct_list.append("A")
+            if tc_b: correct_list.append("B")
+            if tc_c: correct_list.append("C")
+            if tc_d: correct_list.append("D")
+            
+            if not correct_list:
+                st.error("Кем дегенде бір дұрыс жауапты (A, B, C, D) таңдаңыз!")
+            else:
+                img_str = None
+                if t_uploaded_img is not None:
+                    bytes_data = t_uploaded_img.getvalue()
+                    img_str = base64.b64encode(bytes_data).decode("utf-8")
+                    
+                questions_list = st.session_state.app_data["questions"]
+                new_id = max([q["id"] for q in questions_list], default=0) + 1
+                questions_list.append({
+                    "id": new_id, "subject": t_sub, "text": t_text, 
+                    "options": {"A": o_a, "B": o_b, "C": o_c, "D": o_d}, 
+                    "correct": correct_list, "image": img_str
+                })
+                save_data(st.session_state.app_data)
+                st.success("Сұрақ сәтті қосылды!")
 
     # Оқушы панелі
     elif role == "Student":
@@ -370,18 +434,38 @@ else:
                         
                         for i, q in enumerate(shuffled_questions):
                             st.write(f"**Сұрақ {i+1}:** {q['text']}")
+                            if q.get('image'):
+                                img_bytes = base64.b64decode(q['image'])
+                                st.image(Image.open(io.BytesIO(img_bytes)), width=250)
                             
-                            shuffled_options = q['options'].copy()
-                            random.shuffle(shuffled_options)
+                            opts = q['options'] # {"A": "...", "B": "...", "C": "...", "D": "..."}
+                            st.write(f"A) {opts['A']}")
+                            st.write(f"B) {opts['B']}")
+                            st.write(f"C) {opts['C']}")
+                            st.write(f"D) {opts['D']}")
                             
-                            user_answers[q['id']] = st.radio(f"Жауапты таңдаңыз (Сұрақ {i+1})", shuffled_options, key=f"q_radio_{q['id']}")
+                            # Көп жауапты болғандықтан checkbox қолданамыз немесе бірнеше әріпті таңдау
+                            st.write("Жауапты таңдаңыз (бірнешеу болуы мүмкін):")
+                            ans_a = st.checkbox("A", key=f"ans_a_{q['id']}")
+                            ans_b = st.checkbox("B", key=f"ans_b_{q['id']}")
+                            ans_c = st.checkbox("C", key=f"ans_c_{q['id']}")
+                            ans_d = st.checkbox("D", key=f"ans_d_{q['id']}")
+                            
+                            chosen = []
+                            if ans_a: chosen.append("A")
+                            if ans_b: chosen.append("B")
+                            if ans_c: chosen.append("C")
+                            if ans_d: chosen.append("D")
+                            
+                            user_answers[q['id']] = chosen
                             st.divider()
                             
                         submit_test = st.form_submit_button("Тестті аяқтау және тапсыру")
                         if submit_test:
                             correct_count = 0
                             for q in shuffled_questions:
-                                if user_answers.get(q['id']) == q['correct']:
+                                # Егер дұрыс жауаптар тізімі мен қолданушы таңдаған тізім дәл келсе
+                                if set(user_answers.get(q['id'], [])) == set(q['correct']):
                                     correct_count += 1
                             st.success(f"Тест аяқталды! Сіздің жинаған балыңыз: {correct_count} / {len(shuffled_questions)}")
                 else:

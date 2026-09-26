@@ -662,3 +662,4 @@ else:
         with tab_s8:
             st.subheader("⚔️ Дуэль ойыны")
             st.info("Дуэль бөлімі дайындалуда.")
+            

@@ -331,8 +331,7 @@ else:
                 c_b = st.checkbox("B дұрыс")
                 c_c = st.checkbox("C дұрыс")
                 c_d = st.checkbox("D дұрыс")
-                submitted_dir_q = st.form_submit_button("Қосу")
-                if submitted_dir_q:
+                if st.form_submit_button("Қосу"):
                     corrects = []
                     if c_a: corrects.append("A")
                     if c_b: corrects.append("B")
@@ -348,8 +347,7 @@ else:
             st.subheader("⚔️ Дуэль сұрақтары мен уақытын басқару")
             with st.form("duel_settings_form"):
                 new_duel_timer = st.number_input("Дуэль уақыты (минут)", min_value=1, max_value=60, value=st.session_state.app_data["settings"].get("duel_timer", 3))
-                submitted_duel_timer = st.form_submit_button("Дуэль уақытын сақтау")
-                if submitted_duel_timer:
+                if st.form_submit_button("Дуэль уақытын сақтау"):
                     st.session_state.app_data["settings"]["duel_timer"] = new_duel_timer
                     save_data(st.session_state.app_data)
                     st.success(f"Дуэль уақыты {new_duel_timer} минут етіп сақталды!")
@@ -366,8 +364,7 @@ else:
                 dc_c = st.checkbox("C дұрыс", key="dc_c")
                 dc_d = st.checkbox("D дұрыс", key="dc_d")
                 
-                submitted_duel_q = st.form_submit_button("Дуэль сұрағын қосу")
-                if submitted_duel_q:
+                if st.form_submit_button("Дуэль сұрағын қосу"):
                     corrects = []
                     if dc_a: corrects.append("A")
                     if dc_b: corrects.append("B")
@@ -413,8 +410,7 @@ else:
                 
             with st.form("dir_chat_form", clear_on_submit=True):
                 dir_msg = st.text_input("Чатқа хабарлама жазу:")
-                submitted_dir_chat = st.form_submit_button("Жіберу")
-                if submitted_dir_chat:
+                if st.form_submit_button("Жіберу"):
                     dir_msg_str = str(dir_msg) if dir_msg is not None else ""
                     if dir_msg_str and dir_msg_str.strip():
                         chat_messages.append({
@@ -555,8 +551,7 @@ else:
                 
             with st.form("teacher_chat_form", clear_on_submit=True):
                 t_msg = st.text_input("Чатқа хабарлама жазу:")
-                submitted_teacher_chat = st.form_submit_button("Жіберу")
-                if submitted_teacher_chat:
+                if st.form_submit_button("Жіберу"):
                     t_msg_str = str(t_msg) if t_msg is not None else ""
                     if t_msg_str and t_msg_str.strip():
                         chat_messages.append({
@@ -662,8 +657,7 @@ else:
                                 answers[q['id']] = ans
                                 st.divider()
                             
-                            submitted_exam = st.form_submit_button("Аяқтау")
-                            if submitted_exam:
+                            if st.form_submit_button("Аяқтау"):
                                 score = 0
                                 for q in qs:
                                     if set(answers.get(q['id'], [])) == set(q['correct']):
@@ -686,8 +680,7 @@ else:
                 with st.form("appeal_form", clear_on_submit=True):
                     ap_subject = st.selectbox("Пәні", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
                     ap_text = st.text_area("Аппеляция себебі (қай сұрақ, неліктен қате деп ойлайсыз):")
-                    submitted_appeal = st.form_submit_button("Аппеляцияны жіберу")
-                    if submitted_appeal:
+                    if st.form_submit_button("Аппеляцияны жіберу"):
                         ap_text_str = str(ap_text) if ap_text is not None else ""
                         if ap_text_str and ap_text_str.strip():
                             if "appeals" not in st.session_state.app_data:
@@ -712,8 +705,7 @@ else:
                 
             with st.form("student_chat_form", clear_on_submit=True):
                 s_msg = st.text_input("Хабарлама жазу:")
-                submitted_student_chat = st.form_submit_button("Жіберу")
-                if submitted_student_chat:
+                if st.form_submit_button("Жіберу"):
                     s_msg_str = str(s_msg) if s_msg is not None else ""
                     if s_msg_str and s_msg_str.strip():
                         is_banned = check_bad_words_and_ban(user, s_msg_str)
@@ -734,8 +726,7 @@ else:
             st.subheader("📝 Директорға немесе мұғалімге заява (өтініш) жазу")
             with st.form("application_form", clear_on_submit=True):
                 app_text = st.text_area("Заяваның мәтіні:")
-                submitted_app = st.form_submit_button("Заяваны жіберу")
-                if submitted_app:
+                if st.form_submit_button("Заяваны жіберу"):
                     app_text_str = str(app_text) if app_text is not None else ""
                     if app_text_str and app_text_str.strip():
                         if "applications" not in st.session_state.app_data:

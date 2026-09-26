@@ -411,10 +411,11 @@ else:
             with st.form("dir_chat_form", clear_on_submit=True):
                 dir_msg = st.text_input("Чатқа хабарлама жазу:")
                 if st.form_submit_button("Жіберу"):
-                    if dir_msg and dir_msg.strip():
+                    dir_msg_str = str(dir_msg) if dir_msg is not None else ""
+                    if dir_msg_str and dir_msg_str.strip():
                         chat_messages.append({
                             "user": f"{user} (Директор)",
-                            "text": dir_msg,
+                            "text": dir_msg_str,
                             "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                         })
                         save_data(st.session_state.app_data)
@@ -551,10 +552,11 @@ else:
             with st.form("teacher_chat_form", clear_on_submit=True):
                 t_msg = st.text_input("Чатқа хабарлама жазу:")
                 if st.form_submit_button("Жіберу"):
-                    if t_msg and t_msg.strip():
+                    t_msg_str = str(t_msg) if t_msg is not None else ""
+                    if t_msg_str and t_msg_str.strip():
                         chat_messages.append({
                             "user": f"{user} (Мұғалім)",
-                            "text": t_msg,
+                            "text": t_msg_str,
                             "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                         })
                         save_data(st.session_state.app_data)
@@ -679,14 +681,15 @@ else:
                     ap_subject = st.selectbox("Пәні", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
                     ap_text = st.text_area("Аппеляция себебі (қай сұрақ, неліктен қате деп ойлайсыз):")
                     if st.form_submit_button("Аппеляцияны жіберу"):
-                        if ap_text and ap_text.strip():
+                        ap_text_str = str(ap_text) if ap_text is not None else ""
+                        if ap_text_str and ap_text_str.strip():
                             if "appeals" not in st.session_state.app_data:
                                 st.session_state.app_data["appeals"] = []
                             
                             st.session_state.app_data["appeals"].append({
                                 "student": user,
                                 "subject": ap_subject,
-                                "text": ap_text,
+                                "text": ap_text_str,
                                 "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                             })
                             save_data(st.session_state.app_data)
@@ -703,14 +706,15 @@ else:
             with st.form("student_chat_form", clear_on_submit=True):
                 s_msg = st.text_input("Хабарлама жазу:")
                 if st.form_submit_button("Жіберу"):
-                    if s_msg and s_msg.strip():
-                        is_banned = check_bad_words_and_ban(user, s_msg)
+                    s_msg_str = str(s_msg) if s_msg is not None else ""
+                    if s_msg_str and s_msg_str.strip():
+                        is_banned = check_bad_words_and_ban(user, s_msg_str)
                         if is_banned:
                             st.error("⛔ Сіздің хабарламаңыздан тыйым салынған сөздер табылды! Жүйе ережесі бойынша чаттағы аккаунтыңыз 15 күнге бұғатталды.")
                         else:
                             chat_messages.append({
                                 "user": f"{user} (Оқушы)",
-                                "text": s_msg,
+                                "text": s_msg_str,
                                 "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                             })
                             save_data(st.session_state.app_data)
@@ -723,12 +727,13 @@ else:
             with st.form("application_form", clear_on_submit=True):
                 app_text = st.text_area("Заяваның мәтіні:")
                 if st.form_submit_button("Заяваны жіберу"):
-                    if app_text and app_text.strip():
+                    app_text_str = str(app_text) if app_text is not None else ""
+                    if app_text_str and app_text_str.strip():
                         if "applications" not in st.session_state.app_data:
                             st.session_state.app_data["applications"] = []
                         st.session_state.app_data["applications"].append({
                             "student": user,
-                            "text": app_text,
+                            "text": app_text_str,
                             "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                         })
                         save_data(st.session_state.app_data)

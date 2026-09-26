@@ -411,7 +411,7 @@ else:
             with st.form("dir_chat_form", clear_on_submit=True):
                 dir_msg = st.text_input("Чатқа хабарлама жазу:")
                 if st.form_submit_button("Жіберу"):
-                    if dir_msg.strip():
+                    if dir_msg and dir_msg.strip():
                         chat_messages.append({
                             "user": f"{user} (Директор)",
                             "text": dir_msg,
@@ -551,7 +551,7 @@ else:
             with st.form("teacher_chat_form", clear_on_submit=True):
                 t_msg = st.text_input("Чатқа хабарлама жазу:")
                 if st.form_submit_button("Жіберу"):
-                    if t_msg.strip():
+                    if t_msg and t_msg.strip():
                         chat_messages.append({
                             "user": f"{user} (Мұғалім)",
                             "text": t_msg,
@@ -679,7 +679,7 @@ else:
                     ap_subject = st.selectbox("Пәні", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
                     ap_text = st.text_area("Аппеляция себебі (қай сұрақ, неліктен қате деп ойлайсыз):")
                     if st.form_submit_button("Аппеляцияны жіберу"):
-                        if ap_text.strip():
+                        if ap_text and ap_text.strip():
                             if "appeals" not in st.session_state.app_data:
                                 st.session_state.app_data["appeals"] = []
                             
@@ -703,7 +703,7 @@ else:
             with st.form("student_chat_form", clear_on_submit=True):
                 s_msg = st.text_input("Хабарлама жазу:")
                 if st.form_submit_button("Жіберу"):
-                    if s_msg.strip():
+                    if s_msg and s_msg.strip():
                         is_banned = check_bad_words_and_ban(user, s_msg)
                         if is_banned:
                             st.error("⛔ Сіздің хабарламаңыздан тыйым салынған сөздер табылды! Жүйе ережесі бойынша чаттағы аккаунтыңыз 15 күнге бұғатталды.")
@@ -715,13 +715,15 @@ else:
                             })
                             save_data(st.session_state.app_data)
                             st.rerun()
+                    else:
+                        st.error("Хабарлама бос болмауы тиіс.")
 
         with tab_s5:
             st.subheader("📝 Директорға немесе мұғалімге заява (өтініш) жазу")
             with st.form("application_form", clear_on_submit=True):
                 app_text = st.text_area("Заяваның мәтіні:")
                 if st.form_submit_button("Заяваны жіберу"):
-                    if isinstance(app_text, str) and app_text.strip():
+                    if app_text and app_text.strip():
                         if "applications" not in st.session_state.app_data:
                             st.session_state.app_data["applications"] = []
                         st.session_state.app_data["applications"].append({

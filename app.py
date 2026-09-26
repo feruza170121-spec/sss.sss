@@ -46,6 +46,12 @@ def load_data():
                 for key in default_data:
                     if key not in loaded:
                         loaded[key] = default_data[key]
+                
+                # Директордың паролі мен рөлін әрқашан жаңартып тұру (қате кетпеу үшін)
+                if "users" not in loaded:
+                    loaded["users"] = {}
+                loaded["users"]["director"] = {"password": "123", "role": "Director", "direction": "Барлығы", "limit": None, "blocked": False}
+
                 for u in loaded["users"]:
                     if "direction" not in loaded["users"][u]:
                         loaded["users"][u]["direction"] = "Математика - Физика"

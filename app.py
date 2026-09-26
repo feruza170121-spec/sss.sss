@@ -23,9 +23,9 @@ def load_data():
         "teams": {}, 
         "results": [],
         "chat_messages": [],
-        "direct_messages": {}, # {student_name: [{"sender": ..., "text": ..., "time": ...}]}
-        "bans": {}, # {username: {"end_time": ..., "reason": ...}}
-        "team_warning_accepted": {} # {username: True}
+        "direct_messages": {}, 
+        "bans": {}, 
+        "team_warning_accepted": {} 
     }
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -114,7 +114,6 @@ else:
     users_db = st.session_state.app_data["users"]
     role = users_db[user]["role"]
     
-    # Бан тексерісі (Директордан басқасына)
     if role != "Director":
         is_banned, b_time = check_user_ban(user)
         if is_banned:
@@ -122,7 +121,6 @@ else:
             st.error(f"Бан уақыты: {b_time}")
             st.warning("Директорға төмендегі арнайы бөлім арқылы хат жазып, өтініш бере аласыз.")
             
-            # Директорға өтініш чаты бан алғандарға да көрінеді
             st.subheader("📩 Директорға өтініш (Заява директора)")
             dm_dict = st.session_state.app_data["direct_messages"]
             if user not in dm_dict:
@@ -250,7 +248,6 @@ else:
         with tab_s2:
             st.subheader("⚔️ 4x4 Командалық турнир")
             
-            # --- Ескерту экраны (Үлкен әріптермен) ---
             warnings_accepted = st.session_state.app_data["team_warning_accepted"]
             if not warnings_accepted.get(user, False):
                 st.markdown("""
@@ -268,7 +265,6 @@ else:
                     save_data(st.session_state.app_data)
                     st.rerun()
                 st.stop()
-            # ----------------------------------------
 
             teams = st.session_state.app_data["teams"]
             my_current_team = None
@@ -293,7 +289,7 @@ else:
                     st.rerun()
             else:
                 st.write("### Жаңа команда ашу немесе қосылу")
-                with st.create_form_bug := st.form("create_team"):
+                with st.form("create_team"):
                     new_t_name = st.text_input("Команда атауы")
                     if st.form_submit_button("Команда құру (Капитан болу)"):
                         if new_t_name and new_t_name not in teams:
@@ -328,7 +324,7 @@ else:
                     st.info("Командалар жоқ.")
 
         with tab_s3:
-            st.subheader("💬 Ортақ чат (Тек оқушылар мен директорға)")
+            st.subheader("💬 Ортақ чат")
             chat_messages = st.session_state.app_data.get("chat_messages", [])
             for msg in chat_messages:
                 st.write(f"💬 **{msg['user']}**: {msg['text']} *({msg['time']})*")

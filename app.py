@@ -47,19 +47,14 @@ def load_data():
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             try:
                 loaded = json.load(f)
+                # Ескі файлда парольдер хэштелмеген болса, автоматты түрде түзеу үшін немесе key жетіспесе толықтыру:
+                for u in loaded.get("users", {}):
+                    if len(loaded["users"][u]["password"]) != 64: # SHA256 хэші 64 символ болады
+                        loaded["users"][u]["password"] = hash_password("123")
+                
                 for key in default_data:
                     if key not in loaded:
                         loaded[key] = default_data[key]
-                for u in loaded["users"]:
-                    if "direction" not in loaded["users"][u]:
-                        loaded["users"][u]["direction"] = "Математика - Физика"
-                    if "child" not in loaded["users"][u]:
-                        loaded["users"][u]["child"] = "student1" if loaded["users"][u]["role"] == "Parent" else ""
-                for key_sub in ["badges", "chat_messages", "bans", "duel_questions", "duel_results", "notifications", "applications", "appeals", "duels"]:
-                    if key_sub not in loaded:
-                        loaded[key_sub] = {} if key_sub in ["badges", "bans", "notifications"] else []
-                if "duel_timer" not in loaded["settings"]:
-                    loaded["settings"]["duel_timer"] = 3
                 return loaded
             except Exception:
                 return default_data
@@ -99,16 +94,6 @@ def check_bad_words_and_ban(username, text):
             save_data(st.session_state.app_data)
             return True
     return False
-
-def send_whatsapp_alert(phone, message):
-    if not phone:
-        return
-    try:
-        encoded_message = urllib.parse.quote(message)
-        url = f"https://api.callmebot.com/whatsapp.php?phone={phone}&text={encoded_message}&apikey=free"
-        requests.get(url, timeout=3)
-    except Exception:
-        pass
 
 st.set_page_config(page_title="T.A.S UBT.kz - Secure Platform", layout="centered")
 

@@ -345,12 +345,11 @@ else:
 
         with tab4:
             st.subheader("⚔️ Дуэль сұрақтары мен уақытын басқару")
-            with st.form("duel_settings_form"):
-                new_duel_timer = st.number_input("Дуэль уақыты (минут)", min_value=1, max_value=60, value=st.session_state.app_data["settings"].get("duel_timer", 3))
-                if st.form_submit_button("Дуэль уақытын сақтау"):
-                    st.session_state.app_data["settings"]["duel_timer"] = new_duel_timer
-                    save_data(st.session_state.app_data)
-                    st.success(f"Дуэль уақыты {new_duel_timer} минут етіп сақталды!")
+            new_duel_timer = st.number_input("Дуэль уақыты (минут)", min_value=1, max_value=60, value=st.session_state.app_data["settings"].get("duel_timer", 3), key="duel_timer_input_field")
+            if st.button("Дуэль уақытын сақтау", key="save_duel_timer_btn"):
+                st.session_state.app_data["settings"]["duel_timer"] = new_duel_timer
+                save_data(st.session_state.app_data)
+                st.success(f"Дуэль уақыты {new_duel_timer} минут етіп сақталды!")
             
             st.divider()
             with st.form("duel_q_form"):

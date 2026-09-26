@@ -25,10 +25,12 @@ def load_data():
         "questions": [],
         "login_logs": [],
         "results": [],
+        "feedback": [],
         "settings": {
             "timer_enabled": False,
             "timer_duration": 20,
-            "whatsapp_phone": ""
+            "whatsapp_phone": "",
+            "allow_export": False  # Директордың рұқсатынсыз жабық тұрады
         }
     }
 
@@ -57,9 +59,6 @@ if 'test_submitted' not in st.session_state:
 
 if 'current_test_results' not in st.session_state:
     st.session_state.current_test_results = None
-
-if 'ai_generated_questions' not in st.session_state:
-    st.session_state.ai_generated_questions = []
 
 def send_whatsapp_alert(phone, message):
     if not phone:
@@ -131,7 +130,6 @@ if not st.session_state.logged_in:
             st.session_state.student_direction = None
             st.session_state.test_submitted = False
             st.session_state.current_test_results = None
-            st.session_state.ai_generated_questions = []
             
             role = users_db[username]["role"]
             time_str = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -186,7 +184,6 @@ else:
         st.session_state.student_direction = None
         st.session_state.test_submitted = False
         st.session_state.current_test_results = None
-        st.session_state.ai_generated_questions = []
         st.rerun()
 
     if role == "Director":
@@ -213,8 +210,8 @@ else:
             "Қолданушылар мен Бұғаттау", 
             "Мұғалім Лимиттері", 
             "Сұрақтарды Басқару", 
-            "🤖 AI Фотосканер", 
             "📊 Статистика және Рейтинг", 
+            "💬 Пікірлер мен Шағымдар",
             "Құпия сөз және WhatsApp", 
             "Баптаулар және Таймер"
         ])
@@ -272,7 +269,7 @@ else:
                 st.write("Мұғалімдер жоқ.")
 
         with tab3:
-            st.subheader("📚 Сұрақтар базасы (Фото және көп жауапты)")
+            st.subheader("📚 Сұрақтар базасы (Фото қолдауымен және көп жауапты)")
             sub_filter = st.selectbox("Пән бойынша сүзгілеу", ["Барлығы", "Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="filter_subject_dir")
             
             with st.form("add_question_form_dir"):
@@ -342,59 +339,6 @@ else:
                         st.rerun()
 
         with tab4:
-            st.subheader("🤖 Ақылды AI-Фотосканер (Тек сурет ішінен алу)")
-            st.write("Суретті жүктеңіз. Жасанды интеллект **суреттің ішіндегі нақты мәтінді** ғана оқып, басқа ештеңе ойлап шығармайды. Содан кейін төменде ұсынылған сұрақтың жанындағы **«➕ Сұраққа қосу»** батырмасы арқылы базаға сақтай аласыз.")
-            
-            ai_sub = st.selectbox("Пәнін таңдаңыз", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="ai_q_sub")
-            ai_img = st.file_uploader("Сұрақ бар суретті жүктеу", type=["png", "jpg", "jpeg"], key="ai_upload_img")
-            
-            if ai_img is not None:
-                st.image(ai_img, caption="Жүктелген сурет", width=300)
-                if st.button("🧠 Сурет ішінен сұрақты оқу (Strict Scan)"):
-                    bytes_data = ai_img.getvalue()
-                    img_base64 = base64.b64encode(bytes_data).decode("utf-8")
-                    
-                    # Мұнда суреттің ішіндегі нақты деректерді танитын қатаң блок жасалды (басқа ештеңе кумайды)
-                    st.session_state.ai_generated_questions = [
-                        {
-                            "id": 1,
-                            "text": "[Фотодан алынды] Суретте көрсетілген тапсырманың дұрыс шешімін табыңыз.",
-                            "options": {"A": "Нұсқа 1", "B": "Нұсқа 2", "C": "Нұсқа 3", "D": "Нұсқа 4"},
-                            "correct": ["A"],
-                            "image": img_base64
-                        }
-                    ]
-                    st.success("✨ Сурет ішіндегі мәтін сәтті оқылды! Төмендегі ұсынылған сұрақты тексеріп, базаға қосыңыз.")
-
-            if st.session_state.ai_generated_questions:
-                st.markdown("---")
-                st.subheader("💡 Суреттен анықталған сұрақ (Мынаны қойсаңыз болады):")
-                
-                for idx, ai_q in enumerate(st.session_state.ai_generated_questions):
-                    with st.container():
-                        col_ai1, col_ai2 = st.columns([4, 1])
-                        with col_ai1:
-                            st.write(f"**Сұрақ:** {ai_q['text']}")
-                            opts = ai_q['options']
-                            st.write(f"A) {opts['A']} | B) {opts['B']} | C) {opts['C']} | D) {opts['D']}")
-                            st.write(f"Ұсынылған дұрыс жауап: {', '.join(ai_q['correct'])}")
-                        with col_ai2:
-                            if st.button("➕ Сұраққа қосу", key=f"add_ai_q_{idx}"):
-                                questions_list = st.session_state.app_data["questions"]
-                                new_id = max([q["id"] for q in questions_list], default=0) + 1
-                                questions_list.append({
-                                    "id": new_id,
-                                    "subject": ai_sub,
-                                    "text": ai_q['text'],
-                                    "options": ai_q['options'],
-                                    "correct": ai_q['correct'],
-                                    "image": ai_q['image']
-                                })
-                                save_data(st.session_state.app_data)
-                                st.success(f"Сұрақ #{new_id} базаға сәтті қосылды!")
-                        st.divider()
-
-        with tab5:
             st.subheader("📊 Статистика және Рейтинг (Top-10)")
             results = st.session_state.app_data.get("results", [])
             if results:
@@ -402,10 +346,25 @@ else:
                 df_results = pd.DataFrame(sorted_results)
                 st.dataframe(df_results)
                 
-                csv_data = df_results.to_csv(index=False).encode('utf-8')
-                st.download_button("📥 Нәтижелерді Excel (CSV) форматында жүктеу", csv_data, "ubt_results.csv", "text/csv")
+                # Тек директор рұқсат берген жағдайда ғана жүктеп алу батырмасы шығады
+                if st.session_state.app_data["settings"].get("allow_export", False):
+                    csv_data = df_results.to_csv(index=False).encode('utf-8')
+                    st.download_button("📥 Нәтижелерді Excel (CSV) форматында жүктеу", csv_data, "ubt_results.csv", "text/csv")
+                else:
+                    st.info("ℹ️ Нәтижелерді Excel түрінде жүктеу функциясы қазіргі уақытта директор тарапынан **бұғатталған**.")
             else:
                 st.write("Әзірге тест тапсырған оқушылар нәтижелері жоқ.")
+
+        with tab5:
+            st.subheader("💬 Оқушылар мен мұғалімдердің хаттары (Шағымдар мен ұсыныстар)")
+            feedback_list = st.session_state.app_data.get("feedback", [])
+            if feedback_list:
+                for fb in reversed(feedback_list):
+                    st.write(f"**Кімнен:** {fb['user']} | **Уақыты:** {fb['time']}")
+                    st.info(fb['message'])
+                    st.divider()
+            else:
+                st.write("Әзірге келіп түскен хабарламалар жоқ.")
 
         with tab6:
             st.subheader("🔑 WhatsApp нөмірі және Құпия сөзді басқару")
@@ -441,12 +400,18 @@ else:
                     st.error("Қате логин немесе бұл ат бұрыннан бар.")
 
         with tab7:
-            st.subheader("⏱️ Тест таймерін басқару")
+            st.subheader("⏱️ Тест таймерін және Экспорт рұқсатын басқару")
             settings = st.session_state.app_data["settings"]
+            
             settings["timer_enabled"] = st.checkbox("Оқушылар үшін таймерді қосу", value=settings["timer_enabled"], key="timer_checkbox_setting")
             settings["timer_duration"] = st.number_input("Тест уақыты (минут)", min_value=1, max_value=180, value=settings["timer_duration"], key="timer_duration_setting")
+            
+            st.divider()
+            # ДИРЕКТОРДЫҢ РҰҚСАТ БЕРЕТІН ТУМБЛЕРІ
+            settings["allow_export"] = st.checkbox("📁 Нәтижелерді Excel/PDF форматында жүктеуге рұқсат беру", value=settings.get("allow_export", False), key="allow_export_setting")
+            
             save_data(st.session_state.app_data)
-            st.success("Таймер баптаулары сақталды!")
+            st.success("Барлық баптаулар сәтті сақталды!")
 
     elif role == "Teacher":
         limit = users_db[user]["limit"]
@@ -456,7 +421,7 @@ else:
 
         st.title("📚 Мұғалім панелі")
         
-        t_tab1, t_tab2, t_tab3 = st.tabs(["Сұрақ қосу", "🤖 AI Фотосканер", "Оқушылар нәтижелері"])
+        t_tab1, t_tab2, t_tab3 = st.tabs(["Сұрақ қосу", "Оқушылар нәтижелері", "Директорға хат жазу"])
         
         with t_tab1:
             t_sub = st.selectbox("Пәнді таңдаңыз", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="teacher_sub")
@@ -500,60 +465,35 @@ else:
                     st.success("Сұрақ сәтті қосылды!")
 
         with t_tab2:
-            st.subheader("🤖 Ақылды AI-Фотосканер (Тек сурет ішінен алу)")
-            ai_sub_t = st.selectbox("Пәнін таңдаңыз", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="ai_q_sub_t")
-            ai_img_t = st.file_uploader("Сұрақ бар суретті жүктеу", type=["png", "jpg", "jpeg"], key="ai_upload_img_t")
-            
-            if ai_img_t is not None:
-                st.image(ai_img_t, caption="Жүктелген сурет", width=300)
-                if st.button("🧠 Сурет ішінен сұрақты оқу (Strict Scan)", key="btn_ai_t"):
-                    bytes_data = ai_img_t.getvalue()
-                    img_base64 = base64.b64encode(bytes_data).decode("utf-8")
-                    
-                    st.session_state.ai_generated_questions = [
-                        {
-                            "id": 1,
-                            "text": "[Фотодан алынды] Суретте көрсетілген есептің шарты мен сұрағы.",
-                            "options": {"A": "Жауап 1", "B": "Жауап 2", "C": "Жауап 3", "D": "Жауап 4"},
-                            "correct": ["B"],
-                            "image": img_base64
-                        }
-                    ]
-                    st.success("✨ Сурет ішіндегі мәтін сәтті оқылды! Ұсынылған сұрақты төменнен базаға қосуға болады.")
-
-            if st.session_state.ai_generated_questions:
-                st.markdown("---")
-                st.subheader("💡 Суреттен анықталған сұрақ:")
-                for idx, ai_q in enumerate(st.session_state.ai_generated_questions):
-                    col_ai1, col_ai2 = st.columns([4, 1])
-                    with col_ai1:
-                        st.write(f"**Сұрақ:** {ai_q['text']}")
-                        opts = ai_q['options']
-                        st.write(f"A) {opts['A']} | B) {opts['B']} | C) {opts['C']} | D) {opts['D']}")
-                        st.write(f"Дұрыс жауап: {', '.join(ai_q['correct'])}")
-                    with col_ai2:
-                        if st.button("➕ Сұраққа қосу", key=f"add_ai_q_t_{idx}"):
-                            questions_list = st.session_state.app_data["questions"]
-                            new_id = max([q["id"] for q in questions_list], default=0) + 1
-                            questions_list.append({
-                                "id": new_id,
-                                "subject": ai_sub_t,
-                                "text": ai_q['text'],
-                                "options": ai_q['options'],
-                                "correct": ai_q['correct'],
-                                "image": ai_q['image']
-                            })
-                            save_data(st.session_state.app_data)
-                            st.success(f"Сұрақ #{new_id} базаға қосылды!")
-                    st.divider()
-
-        with t_tab3:
             st.subheader("Оқушылардың тест нәтижелері")
             results = st.session_state.app_data.get("results", [])
             if results:
-                st.dataframe(pd.DataFrame(results))
+                df_res = pd.DataFrame(results)
+                st.dataframe(df_res)
+                
+                # Мұғалім үшін де экспорт тек директор рұқсаты бар болса ғана жұмыс істейді
+                if st.session_state.app_data["settings"].get("allow_export", False):
+                    csv_data = df_res.to_csv(index=False).encode('utf-8')
+                    st.download_button("📥 Нәтижелерді жүктеу (Excel)", csv_data, "teacher_results.csv", "text/csv")
+                else:
+                    st.info("ℹ️ Нәтижелерді файлға жүктеуге директор әзірге рұқсат берген жоқ.")
             else:
                 st.write("Әзірге нәтижелер жоқ.")
+
+        with t_tab3:
+            st.subheader("Директорға ұсыныс немесе шағым жіберу")
+            msg_text = st.text_area("Хабарлама мәтіні", key="teacher_feedback_text")
+            if st.button("Жіберу"):
+                if msg_text:
+                    st.session_state.app_data["feedback"].append({
+                        "user": user,
+                        "message": msg_text,
+                        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    })
+                    save_data(st.session_state.app_data)
+                    st.success("Хабарыңыз директорға сәтті жіберілді!")
+                else:
+                    st.error("Хабарлама бос болмауы тиіс!")
 
     elif role == "Student":
         st.title("🎓 Оқушының тест тапсыру панелі")
@@ -681,9 +621,15 @@ else:
                 <h2>СЕРТИФИКАТ</h2>
                 <p>Осы сертификат <b>{user}</b> атты оқушыға беріледі.</p>
                 <h3>Жинаған ұпайы: {res['score']} / {res['total']}</h3>
-                <p>Берілген күні: {datetime.now().strftime('%Y-%m-%d')}</p>
+                <p>Берілген күні: {datetime.now().strftime('%Y-%m-d')}</p>
             </div>
             """, unsafe_allow_html=True)
+            
+            # Оқушылар нәтижелерін тек директор рұқсат берсе ғана файл түрінде көшіріп/жүктей алады
+            if st.session_state.app_data["settings"].get("allow_export", False):
+                res_json = json.dumps(res, ensure_ascii=False, indent=4).encode('utf-8')
+                st.download_button("📥 Жеке нәтижелерімді жүктеу (JSON)", res_json, f"{user}_result.json", "application/json")
+            
             st.markdown("---")
             
             st.subheader("❌ Қатемен жұмыс (Сіз қате жіберген сұрақтар):")

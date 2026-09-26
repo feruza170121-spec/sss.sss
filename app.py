@@ -107,54 +107,102 @@ def send_whatsapp_alert(phone, message):
     except Exception:
         pass
 
-st.set_page_config(page_title="UBT.kz - Secure Platform", layout="centered")
+st.set_page_config(page_title="T.A.S UBT.kz - Cosmic Secure Platform", layout="centered")
 
+# 🌌 Ғарыштық стильдегі CSS дизайн
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Outfit', sans-serif;
+    }
+
     .stApp {
-        background-color: #0e1117;
-        color: #00ff66;
+        background: linear-gradient(135deg, #070913 0%, #110d24 50%, #1c1033 100%);
+        color: #e2e8f0;
     }
-    h1, h2, h3, h4, h5, h6, p, label, span, .stMarkdown {
-        color: #00ff66 !important;
+
+    h1, h2, h3, h4, h5, h6 {
+        color: #d8b4fe !important;
+        font-weight: 700;
+        text-shadow: 0 0 15px rgba(216, 180, 254, 0.2);
     }
-    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stNumberInput input {
-        background-color: #1a1c23 !important;
-        color: #00ff66 !important;
-        border: 1px solid #00ff66 !important;
+
+    p, label, span, .stMarkdown {
+        color: #cbd5e1 !important;
     }
+
+    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stNumberInput input, .stTextArea textarea {
+        background-color: rgba(30, 27, 75, 0.6) !important;
+        color: #f3e8ff !important;
+        border: 1px solid #7c3aed !important;
+        border-radius: 10px !important;
+    }
+    
+    .stTextInput input:focus, .stTextArea textarea:focus {
+        border-color: #c084fc !important;
+        box-shadow: 0 0 10px rgba(192, 132, 252, 0.4);
+    }
+
     .stButton button {
-        background-color: #00ff66 !important;
-        color: #0e1117 !important;
-        font-weight: bold;
-        border-radius: 5px;
+        background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%) !important;
+        color: #ffffff !important;
+        font-weight: 600;
+        border-radius: 10px;
+        border: none;
+        padding: 0.5rem 1rem;
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+        transition: all 0.3s ease;
     }
+
     .stButton button:hover {
-        background-color: #00cc55 !important;
-        color: #0e1117 !important;
+        background: linear-gradient(90deg, #6d28d9 0%, #9333ea 100%) !important;
+        box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6);
+        transform: translateY(-2px);
+    }
+
+    section[data-testid="stSidebar"] {
+        background-color: #0b0c16;
+        border-right: 1px solid rgba(124, 58, 237, 0.2);
+    }
+
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: rgba(30, 27, 75, 0.4);
+        border-radius: 8px;
+        color: #c084fc;
+        border: 1px solid rgba(124, 58, 237, 0.2);
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%) !important;
+        color: white !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
-    st.title("🔐 UBT.kz Secure Login")
+    st.title("🌌 T.A.S UBT.kz | Cosmic Auth")
+    st.markdown("Жүйеге кіру үшін логин мен пароліңізді жазыңыз:")
     
     username = st.text_input("Username", key="login_username")
     password = st.text_input("Password", type="password", key="login_password")
     
-    if st.button("Login"):
+    if st.button("Кіру"):
         now = datetime.now()
         users_db = st.session_state.app_data["users"]
         
         if username in users_db and users_db[username].get("blocked", False):
-            st.error("Бұл аккаунт директор тарапынан бұғатталған!")
+            st.error("⛔ Бұл аккаунт директор тарапынан бұғатталған!")
             st.stop()
         
         if username in st.session_state.blocked_users:
             unblock_time = st.session_state.blocked_users[username]
             if now < unblock_time:
                 remaining = int((unblock_time - now).total_seconds() / 60)
-                st.error(f"Бұл аккаунт 10 рет қате енгізілгені үшін бұғатталған. {remaining} минуттан кейін қайталап көріңіз.")
+                st.error(f"Бұл аккаунт уақытша бұғатталған. {remaining} минуттан кейін көріңіз.")
                 st.stop()
             else:
                 del st.session_state.blocked_users[username]
@@ -212,7 +260,7 @@ else:
 
     role = users_db[user]["role"]
     
-    st.sidebar.title(f"Қош келдіңіз, {user}!")
+    st.sidebar.title(f"🚀 Қош келдіңіз, {user}!")
     st.sidebar.text(f"Рөлі: {role}")
     
     if st.sidebar.button("Жүйеден шығу"):
@@ -224,12 +272,12 @@ else:
         st.rerun()
 
     if role == "Director":
-        st.title("👑 Директордың басқару панелі")
+        st.title("👑 Директордың басқару панелі (T.A.S UBT.kz)")
         whatsapp_phone_saved = st.session_state.app_data["settings"].get("whatsapp_phone", "")
         
         if not whatsapp_phone_saved:
-            st.warning("⚠️ Назар аударыңыз! Жүйені толық пайдалану үшін төменде WhatsApp нөміріңізді міндетті түрде жазып сақтауыңыз қажет.")
-            phone_input = st.text_input("WhatsApp нөміріңіз (мысалы: 77012345678)", key="initial_whatsapp_input")
+            st.warning("⚠️ Назар аударыңыз! Жүйені толық пайдалану үшін WhatsApp нөміріңізді енгізіңіз.")
+            phone_input = st.text_input("WhatsApp нөмірі (мысалы: 77012345678)", key="initial_whatsapp_input")
             if st.button("WhatsApp нөмірін сақтау"):
                 if phone_input:
                     st.session_state.app_data["settings"]["whatsapp_phone"] = phone_input
@@ -399,7 +447,7 @@ else:
                 st.info("Қазір белсенді бан жоқ.")
 
         with tab8:
-            st.subheader("📥 Оқушылардан түскен заявалар (Өтініштер)")
+            st.subheader("📥 Оқушылардан түскен заявалар")
             applications = st.session_state.app_data.get("applications", [])
             if applications:
                 for idx, app in enumerate(reversed(applications)):
@@ -470,7 +518,7 @@ else:
             st.success("Сақталды!")
 
     elif role == "Teacher":
-        st.title("📚 Мұғалім панелі")
+        st.title("📚 Мұғалім панелі (T.A.S UBT.kz)")
         t_tab1, t_tab2, t_tab3 = st.tabs(["📚 Сұрақ қосу", "💬 Ортақ чат", "⚖️ Аппеляцияларды қарау"])
         
         with t_tab1:
@@ -529,7 +577,7 @@ else:
                 st.info("Әзірге аппеляциялар жоқ.")
 
     elif role == "Parent":
-        st.title(f"👪 Ата-ана кабинеті: {user}")
+        st.title(f"👪 Ата-ана кабинеті: {user} (T.A.S UBT.kz)")
         tab_p1, tab_p2 = st.tabs(["📊 Балалардың нәтижелері", "💬 Жалпы чат"])
         
         with tab_p1:
@@ -546,7 +594,7 @@ else:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
 
     elif role == "Student":
-        st.title(f"🎓 Оқушы кабинеті: {user}")
+        st.title(f"🎓 Оқушы кабинеті: {user} (T.A.S UBT.kz)")
         student_direction = users_db[user].get("direction", "Математика - Физика")
         
         my_badge = st.session_state.app_data["badges"].get(user, "")
@@ -626,7 +674,7 @@ else:
                 
                 st.divider()
                 st.write("### ⚖️ Сұраққа қатысты аппеляция (шағым) беру:")
-                st.info("Егер тесттегі қандай да бір сұрақ қате деп есептесеңіз, директор мен мұғалімге тікелей аппеляция жібере аласыз.")
+                st.info("Егер тесттегі қандай да бір сұрақ қате деп есептесеңіз, аппеляция жібере аласыз.")
                 
                 with st.form("appeal_form", clear_on_submit=True):
                     ap_subject = st.selectbox("Пәні", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"])
@@ -643,7 +691,7 @@ else:
                                 "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                             })
                             save_data(st.session_state.app_data)
-                            st.success("Аппеляция директор мен мұғалімге сәтті жіберілді!")
+                            st.success("Аппеляция сәтті жіберілді!")
                         else:
                             st.error("Мәтін бос болмауы тиіс!")
 

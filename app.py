@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime
 
-# Бүйірлік панельде дизайн режимін таңдау (Түн және Күн режимі)
+# Бүйірлік панельде дизайн режимін таңдау
 st.sidebar.title("🎨 Дизайн баптауы")
 theme = st.sidebar.radio("Режимді таңдаңыз:", ["🌙 Түн режимі (Қара фон / Жасыл сөздер)", "☀️ Күн режимі (Ақ фон / Қара сөздер)"])
 
@@ -17,35 +17,30 @@ else:
     input_bg = "#f0f2f6"
     sidebar_bg = "#f8f9fa"
 
-# Динамикалық CSS стильдері (Сіз жіберген стильдерді режимге сай бейімдедім)
+# CSS стильдерін динамикалық түрде енгізу
 st.markdown(f"""
     <style>
-    /* Негізгі фон мен мәтін түсі */
     .stApp {{
         background-color: {bg_color};
         color: {text_color};
     }}
     
-    /* Барлық мәтіндер мен тақырыптар */
     h1, h2, h3, h4, h5, h6, p, span, label, div {{
         color: {text_color} !important;
     }}
     
-    /* Мәтін енгізетін өрістер мен аймақтар */
     .stTextInput input, .stTextArea textarea {{
         background-color: {input_bg} !important;
         color: {text_color} !important;
         border: 1px solid {text_color} !important;
     }}
     
-    /* Кнопкалардың түсі */
     .stButton button {{
         background-color: {text_color} !important;
         color: {bg_color} !important;
         font-weight: bold;
     }}
     
-    /* Sidebar (Бүйірлік панель) дизайны */
     [data-testid="stSidebar"] {{
         background-color: {sidebar_bg};
     }}
@@ -55,7 +50,7 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# Жүйенің сіз жіберген код бөлігі
+# Жүйенің негізгі функциясы
 def run_student_tabs(user, save_data, check_bad_words_and_ban):
     tab_s4, tab_s5, tab_s6, tab_s7 = st.tabs(["💬 Ортақ чат", "📝 Заява", "⚖️ Аппеляция", "📬 Хабарландырулар"])
     
@@ -128,3 +123,16 @@ def run_student_tabs(user, save_data, check_bad_words_and_ban):
                 st.info(n)
         else:
             st.info("Жаңа хабарландырулар жоқ.")
+
+# --- БАС ҚОСУ ЖӘНЕ ІСКЕ ҚОСУ БӨЛІГІ ---
+if "app_data" not in st.session_state:
+    st.session_state.app_data = {}
+
+def dummy_save(data):
+    st.session_state.app_data = data
+
+def dummy_check(user, msg):
+    return False
+
+# Функцияны экранға шығару үшін міндетті түрде шақырамыз:
+run_student_tabs("Оқушы", dummy_save, dummy_check)

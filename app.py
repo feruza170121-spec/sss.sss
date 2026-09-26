@@ -1,6 +1,5 @@
 import streamlit as st
 from datetime import datetime, timedelta
-import random
 import json
 import os
 import requests
@@ -222,17 +221,6 @@ else:
         st.title("Директордың басқару панелі (T.A.S UBT.kz)")
         whatsapp_phone_saved = st.session_state.app_data["settings"].get("whatsapp_phone", "")
         
-        if not whatsapp_phone_saved:
-            st.warning("⚠️ Назар аударыңыз! Жүйені толық пайдалану үшін WhatsApp нөміріңізді енгізіңіз.")
-            phone_input = st.text_input("WhatsApp нөмірі (мысалы: 77012345678)", key="initial_whatsapp_input")
-            if st.button("WhatsApp нөмірін сақтау"):
-                if phone_input:
-                    st.session_state.app_data["settings"]["whatsapp_phone"] = phone_input
-                    save_data(st.session_state.app_data)
-                    st.success("Сақталды!")
-                    st.rerun()
-            st.stop()
-
         tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12 = st.tabs([
             "Қолданушылар", "Мұғалім Лимиттері", "Сұрақтар", "⚔️ Дуэль", "🏆 Атақтар", "💬 Ортақ чат", "💬 Чат & Бан", "📥 Заявалар", "⚖️ Аппеляциялар", "📊 Статистика", "Қолданушы қосу", "Баптаулар"
         ])
@@ -358,7 +346,7 @@ else:
 
         with tab7:
             st.subheader("💬 Ортақ чат бан жүйесі")
-            st.info("Бан жүйесі тоқтатылды.")
+            st.info("Бан жүйесі қосулы.")
 
         with tab8:
             st.subheader("📥 Оқушылардан түскен заявалар")
@@ -429,8 +417,11 @@ else:
             st.subheader("⚙️ Баптаулар")
             st.session_state.app_data["settings"]["timer_enabled"] = st.checkbox("Таймер қосу", value=st.session_state.app_data["settings"]["timer_enabled"])
             st.session_state.app_data["settings"]["timer_duration"] = st.number_input("Уақыт (мин)", value=st.session_state.app_data["settings"]["timer_duration"])
-            save_data(st.session_state.app_data)
-            st.success("Сақталды!")
+            whatsapp_input_dir = st.text_input("WhatsApp нөмірі", value=whatsapp_phone_saved)
+            if st.button("Баптауларды сақтау"):
+                st.session_state.app_data["settings"]["whatsapp_phone"] = whatsapp_input_dir
+                save_data(st.session_state.app_data)
+                st.success("Сақталды!")
 
     elif role == "Teacher":
         st.title("Мұғалім панелі (T.A.S UBT.kz)")
@@ -661,5 +652,4 @@ else:
 
         with tab_s8:
             st.subheader("⚔️ Дуэль ойыны")
-            st.info("Дуэль бөлімі дайындалуда.")
-            
+            st.info("Дуэль бөлімі қосулы.")

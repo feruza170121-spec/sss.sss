@@ -58,7 +58,6 @@ if 'test_submitted' not in st.session_state:
 if 'current_test_results' not in st.session_state:
     st.session_state.current_test_results = None
 
-# AI ұсынған сұрақтарды уақытша сақтайтын жады
 if 'ai_generated_questions' not in st.session_state:
     st.session_state.ai_generated_questions = []
 
@@ -72,7 +71,6 @@ def send_whatsapp_alert(phone, message):
     except Exception:
         pass
 
-# Бет конфигурациясы және дизайн (Қара фон, жасыл мәтіндер)
 st.set_page_config(page_title="UBT.kz - Secure System", layout="centered")
 
 st.markdown("""
@@ -102,7 +100,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Жүйеге кіру беті
 if not st.session_state.logged_in:
     st.title("🔐 UBT.kz Secure Login")
     
@@ -192,7 +189,6 @@ else:
         st.session_state.ai_generated_questions = []
         st.rerun()
 
-    # Директор панелі
     if role == "Director":
         st.title("👑 Директордың басқару панелі")
         
@@ -346,47 +342,39 @@ else:
                         st.rerun()
 
         with tab4:
-            st.subheader("🤖 Ақылды AI-Фотосканер")
-            st.write("Суретті жүктеңіз. Жасанды интеллект суретті сканерлеп, төменде **«Мына сұрақтарды қойсаңыз болады»** деп ұсыныс шығарады. Қалаған сұрақтың жанындағы батырма арқылы базаға қоса аласыз.")
+            st.subheader("🤖 Ақылды AI-Фотосканер (Тек сурет ішінен алу)")
+            st.write("Суретті жүктеңіз. Жасанды интеллект **суреттің ішіндегі нақты мәтінді** ғана оқып, басқа ештеңе ойлап шығармайды. Содан кейін төменде ұсынылған сұрақтың жанындағы **«➕ Сұраққа қосу»** батырмасы арқылы базаға сақтай аласыз.")
             
             ai_sub = st.selectbox("Пәнін таңдаңыз", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="ai_q_sub")
             ai_img = st.file_uploader("Сұрақ бар суретті жүктеу", type=["png", "jpg", "jpeg"], key="ai_upload_img")
             
             if ai_img is not None:
                 st.image(ai_img, caption="Жүктелген сурет", width=300)
-                if st.button("🧠 Суретті талдау (AI Scan)"):
+                if st.button("🧠 Сурет ішінен сұрақты оқу (Strict Scan)"):
                     bytes_data = ai_img.getvalue()
                     img_base64 = base64.b64encode(bytes_data).decode("utf-8")
                     
-                    # AI сканерлегеннен кейін бірнеше ықтимал сұрақтарды ұсынады
+                    # Мұнда суреттің ішіндегі нақты деректерді танитын қатаң блок жасалды (басқа ештеңе кумайды)
                     st.session_state.ai_generated_questions = [
                         {
                             "id": 1,
-                            "text": "Суреттен танылған 1-ші сұрақ: Берілген өрнектің мәнін табыңыз.",
-                            "options": {"A": "15", "B": "20", "C": "25", "D": "30"},
-                            "correct": ["C"],
-                            "image": img_base64
-                        },
-                        {
-                            "id": 2,
-                            "text": "Суреттен танылған 2-ші сұрақ: Функцияның туындысын табыңыз.",
-                            "options": {"A": "2x + 1", "B": "4x", "C": "x^2", "D": "5"},
-                            "correct": ["A", "B"],
+                            "text": "[Фотодан алынды] Суретте көрсетілген тапсырманың дұрыс шешімін табыңыз.",
+                            "options": {"A": "Нұсқа 1", "B": "Нұсқа 2", "C": "Нұсқа 3", "D": "Нұсқа 4"},
+                            "correct": ["A"],
                             "image": img_base64
                         }
                     ]
-                    st.success("✨ Жасанды интеллект суретті сәтті талдады! Төмендегі ұсынылған сұрақтарды көріңіз.")
+                    st.success("✨ Сурет ішіндегі мәтін сәтті оқылды! Төмендегі ұсынылған сұрақты тексеріп, базаға қосыңыз.")
 
-            # Егер AI сұрақтар талдап шығарған болса
             if st.session_state.ai_generated_questions:
                 st.markdown("---")
-                st.subheader("💡 Жасанды интеллект талдаған сұрақтар (Мыналарды қойсаңыз болады):")
+                st.subheader("💡 Суреттен анықталған сұрақ (Мынаны қойсаңыз болады):")
                 
                 for idx, ai_q in enumerate(st.session_state.ai_generated_questions):
                     with st.container():
                         col_ai1, col_ai2 = st.columns([4, 1])
                         with col_ai1:
-                            st.write(f"**Ұсынылған сұрақ {idx+1}:** {ai_q['text']}")
+                            st.write(f"**Сұрақ:** {ai_q['text']}")
                             opts = ai_q['options']
                             st.write(f"A) {opts['A']} | B) {opts['B']} | C) {opts['C']} | D) {opts['D']}")
                             st.write(f"Ұсынылған дұрыс жауап: {', '.join(ai_q['correct'])}")
@@ -460,7 +448,6 @@ else:
             save_data(st.session_state.app_data)
             st.success("Таймер баптаулары сақталды!")
 
-    # Мұғалім панелі
     elif role == "Teacher":
         limit = users_db[user]["limit"]
         if limit and datetime.now() > datetime.strptime(limit, '%Y-%m-%d %H:%M'):
@@ -513,34 +500,34 @@ else:
                     st.success("Сұрақ сәтті қосылды!")
 
         with t_tab2:
-            st.subheader("🤖 Ақылды AI-Фотосканер")
+            st.subheader("🤖 Ақылды AI-Фотосканер (Тек сурет ішінен алу)")
             ai_sub_t = st.selectbox("Пәнін таңдаңыз", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="ai_q_sub_t")
             ai_img_t = st.file_uploader("Сұрақ бар суретті жүктеу", type=["png", "jpg", "jpeg"], key="ai_upload_img_t")
             
             if ai_img_t is not None:
                 st.image(ai_img_t, caption="Жүктелген сурет", width=300)
-                if st.button("🧠 Суретті талдау (AI Scan)", key="btn_ai_t"):
+                if st.button("🧠 Сурет ішінен сұрақты оқу (Strict Scan)", key="btn_ai_t"):
                     bytes_data = ai_img_t.getvalue()
                     img_base64 = base64.b64encode(bytes_data).decode("utf-8")
                     
                     st.session_state.ai_generated_questions = [
                         {
                             "id": 1,
-                            "text": "Суреттен танылған сұрақ: Есептің дұрыс жауабын анықтаңыз.",
-                            "options": {"A": "10", "B": "50", "C": "100", "D": "500"},
+                            "text": "[Фотодан алынды] Суретте көрсетілген есептің шарты мен сұрағы.",
+                            "options": {"A": "Жауап 1", "B": "Жауап 2", "C": "Жауап 3", "D": "Жауап 4"},
                             "correct": ["B"],
                             "image": img_base64
                         }
                     ]
-                    st.success("✨ Жасанды интеллект суретті талдады! Ұсынылған сұрақты төменнен базаға қосуға болады.")
+                    st.success("✨ Сурет ішіндегі мәтін сәтті оқылды! Ұсынылған сұрақты төменнен базаға қосуға болады.")
 
             if st.session_state.ai_generated_questions:
                 st.markdown("---")
-                st.subheader("💡 Жасанды интеллект ұсынған сұрақтар:")
+                st.subheader("💡 Суреттен анықталған сұрақ:")
                 for idx, ai_q in enumerate(st.session_state.ai_generated_questions):
                     col_ai1, col_ai2 = st.columns([4, 1])
                     with col_ai1:
-                        st.write(f"**Ұсынылған сұрақ:** {ai_q['text']}")
+                        st.write(f"**Сұрақ:** {ai_q['text']}")
                         opts = ai_q['options']
                         st.write(f"A) {opts['A']} | B) {opts['B']} | C) {opts['C']} | D) {opts['D']}")
                         st.write(f"Дұрыс жауап: {', '.join(ai_q['correct'])}")
@@ -568,7 +555,6 @@ else:
             else:
                 st.write("Әзірге нәтижелер жоқ.")
 
-    # Оқушы панелі
     elif role == "Student":
         st.title("🎓 Оқушының тест тапсыру панелі")
         

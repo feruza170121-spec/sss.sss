@@ -13,19 +13,25 @@ DATA_FILE = "ubt_system_data.json"
 def load_data():
     default_data = {
         "users": {
-            "director": {"password": "123", "role": "Director", "direction": "Барлығы", "class_level": 11, "blocked": False},
-            "teacher1": {"password": "123", "role": "Teacher", "direction": "Барлығы", "class_level": 11, "blocked": False},
-            "student1": {"password": "123", "role": "Student", "direction": "Математика - Физика", "class_level": 10, "blocked": False},
-            "student2": {"password": "123", "role": "Student", "direction": "Математика - Физика", "class_level": 11, "blocked": False},
-            "parent1": {"password": "123", "role": "Parent", "direction": "Барлығы", "class_level": 11, "blocked": False}
+            "director": {"password": "123", "role": "Director", "direction": "Барлығы", "class_level": 11, "limit": None, "blocked": False},
+            "teacher1": {"password": "123", "role": "Teacher", "direction": "Барлығы", "class_level": 11, "limit": None, "blocked": False},
+            "student1": {"password": "123", "role": "Student", "direction": "Математика - Физика", "class_level": 10, "limit": None, "blocked": False},
+            "student2": {"password": "123", "role": "Student", "direction": "Математика - Физика", "class_level": 11, "limit": None, "blocked": False},
+            "parent1": {"password": "123", "role": "Parent", "direction": "Барлығы", "class_level": 11, "limit": None, "blocked": False}
         },
         "questions": [],
         "teams": {}, 
+        "login_logs": [],
         "results": [],
+        "badges": {},
         "chat_messages": [],
         "direct_messages": {}, 
         "bans": {}, 
-        "team_warning_accepted": {} 
+        "team_warning_accepted": {}, 
+        "settings": {
+            "timer_enabled": True,
+            "whatsapp_phone": ""
+        }
     }
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -37,6 +43,14 @@ def load_data():
                 for u in loaded["users"]:
                     if "class_level" not in loaded["users"][u]:
                         loaded["users"][u]["class_level"] = 10
+                if "teams" not in loaded:
+                    loaded["teams"] = {}
+                if "direct_messages" not in loaded:
+                    loaded["direct_messages"] = {}
+                if "bans" not in loaded:
+                    loaded["bans"] = {}
+                if "team_warning_accepted" not in loaded:
+                    loaded["team_warning_accepted"] = {}
                 return loaded
             except Exception:
                 return default_data
@@ -49,11 +63,30 @@ def save_data(data):
 if 'app_data' not in st.session_state:
     st.session_state.app_data = load_data()
 
+if 'login_attempts' not in st.session_state:
+    st.session_state.login_attempts = {}
+
+if 'blocked_users' not in st.session_state:
+    st.session_state.blocked_users = {}
+
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.current_user = None
 
+if 'test_submitted' not in st.session_state:
+    st.session_state.test_submitted = False
+
 BAD_WORDS = ["ботк", "сұка", "обал", "шайтан", "ақымақ", "есек", "сорлы"]
+
+def check_bad_words_and_ban(username, text):
+    text_lower = text.lower()
+    for word in BAD_WORDS:
+        if word in text_lower:
+            unban_time = datetime.now() + timedelta(days=15)
+            st.session_state.app_data["bans"][username] = {"end_time": unban_time.strftime("%Y-%m-%d %H:%M:%S"), "reason": "Боқтық сөз қолдану"}
+            save_data(st.session_state.app_data)
+            return True
+    return False
 
 def check_user_ban(username):
     bans = st.session_state.app_data["bans"]
@@ -67,7 +100,7 @@ def check_user_ban(username):
             save_data(st.session_state.app_data)
     return False, ""
 
-def ban_entire_team(team_name, reason="Чит қолданылды"):
+def ban_entire_team(team_name, reason="Чит немесе алдау қолданылды"):
     teams = st.session_state.app_data["teams"]
     bans = st.session_state.app_data["bans"]
     if team_name in teams:
@@ -99,6 +132,11 @@ if not st.session_state.logged_in:
     
     if st.button("Login"):
         users_db = st.session_state.app_data["users"]
+        
+        if username in users_db and users_db[username].get("blocked", False):
+            st.error("Бұл аккаунт бұғатталған!")
+            st.stop()
+            
         if username in users_db and users_db[username]["password"] == password:
             is_banned, b_time = check_user_ban(username)
             if is_banned and username != "director":
@@ -118,7 +156,7 @@ else:
         is_banned, b_time = check_user_ban(user)
         if is_banned:
             st.title(f"⛔ Сіздің аккаунтыңыз банға ұшырады!")
-            st.error(f"Бан уақыты: {b_time}")
+            st.error(f"Бан бітетін уақыты: {b_time}")
             st.warning("Директорға төмендегі арнайы бөлім арқылы хат жазып, өтініш бере аласыз.")
             
             st.subheader("📩 Директорға өтініш (Заява директора)")
@@ -143,9 +181,9 @@ else:
                 st.session_state.current_user = None
                 st.rerun()
             st.stop()
-
+    
     st.sidebar.title(f"Қош келдіңіз, {user}!")
-    st.sidebar.text(f"Рөлі: {role}")
+    st.sidebar.text(f"Рөлі: {role} | Сыныбы: {users_db[user].get('class_level', 10)}")
     
     if st.sidebar.button("Жүйеден шығу"):
         st.session_state.logged_in = False
@@ -154,14 +192,14 @@ else:
 
     if role == "Director":
         st.title("👑 Директордың басқару панелі")
-        tab1, tab2, tab3 = st.tabs(["Қолданушылар & Бандарды басқару", "Сұрақтар қосу", "Оқушылардың өтініштері"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Қолданушылар & Бандар", "Сұрақтар қосу", "Оқушылардың өтініштері", "Жалпы чат"])
         
         with tab1:
             st.subheader("⚙️ Банға кеткен қолданушылар / командалар")
             bans = st.session_state.app_data["bans"]
             if bans:
                 for b_user, b_info in list(bans.items()):
-                    st.write(f"👤 **{b_user}** | Себебі: {b_info['reason']} | Бітетін уақыты: {b_info['end_time']}")
+                    st.write(f"👤 **{b_user}** | Себебі: {b_info.get('reason', 'Белгісіз')} | Бітетін уақыты: {b_info['end_time']}")
                     if st.button(f"Банды алу (Unban): {b_user}", key=f"unban_{b_user}"):
                         del bans[b_user]
                         save_data(st.session_state.app_data)
@@ -170,11 +208,16 @@ else:
             else:
                 st.info("Қазір банға кеткендер жоқ.")
                 
+            st.divider()
+            st.subheader("👥 Қолданушылар тізімі")
+            for u, data in users_db.items():
+                st.write(f"**{u}** ({data['role']} - Сыныбы: {data.get('class_level', 10)}-сынып)")
+                
         with tab2:
             st.subheader("📚 Сұрақ қосу")
             with st.form("dir_q"):
                 q_sub = st.selectbox("Пән", ["Математикалық сауаттылық", "Математика", "Физика", "Биология", "Химия"])
-                q_text = st.text_area("Сұрақ мәтіні")
+                q_text = st.text_area("Сұрақ мәтіні (Ұзындығына қарай таймер есептеледі)")
                 opt_a = st.text_input("A")
                 opt_b = st.text_input("B")
                 opt_c = st.text_input("C")
@@ -215,38 +258,74 @@ else:
             else:
                 st.info("Әзірге өтініштер жоқ.")
 
+        with tab4:
+            st.subheader("💬 Жалпы чат (Директор кез келген уақытта жаза алады)")
+            chat_messages = st.session_state.app_data.get("chat_messages", [])
+            for msg in chat_messages:
+                st.write(f"💬 **{msg['user']}**: {msg['text']} *({msg['time']})*")
+                
+            with st.form("director_chat_form", clear_on_submit=True):
+                txt = st.text_input("Директор ретінде хабарлама жазу:")
+                if st.form_submit_button("Жіберу"):
+                    if txt:
+                        chat_messages.append({"user": "Директор", "text": txt, "time": datetime.now().strftime("%Y-%m-%d %H:%M")})
+                        save_data(st.session_state.app_data)
+                        st.rerun()
+
     elif role == "Student":
         st.title(f"🎓 Оқушы кабинеті: {user}")
         student_dir = users_db[user].get("direction", "Математика - Физика")
         student_class = users_db[user].get("class_level", 10)
         
-        tab_s1, tab_s2, tab_s3, tab_s4, tab_s5 = st.tabs(["🎯 Тест", "⚔️ 4x4 Турнир", "💬 Ортақ чат", "📩 Директорға өтініш", "👤 Профиль"])
+        tab_s1, tab_s2, tab_s3, tab_s4, tab_s5 = st.tabs(["🎯 Динамо-Тест", "⚔️ 4x4 Турнир", "💬 Жалпы чат", "📩 Директорға өтініш", "👤 Профиль"])
         
         with tab_s1:
-            st.subheader("🎯 Пәндік тест")
+            st.subheader("🎯 Пәндік тест (Динамикалық таймер + Жылдамдық бонусы)")
+            st.info("💡 Әр сұрақтың ұзындығына қарай секундтар беріледі. Егер уақытынан ерте жауап берсеңіз, қосымша бонус ұпай беріледі!")
+            
             qs = st.session_state.app_data["questions"]
             if qs:
-                with st.form("exam_form"):
+                if "test_start_time" not in st.session_state:
+                    st.session_state.test_start_time = time.time()
+                
+                with st.form("exam_form_dynamic"):
                     answers = {}
+                    question_times = {}
                     for idx, q in enumerate(qs):
-                        st.markdown(f"**Сұрақ {idx+1}**: {q['text']}")
+                        q_length = len(q['text'])
+                        allowed_seconds = max(15, int(q_length * 0.2))
+                        
+                        st.markdown(f"**Сұрақ {idx+1}** (Берілген уақыт: ~**{allowed_seconds} секунд**): {q['text']}")
                         for k, v in q['options'].items():
                             st.write(f"{k}) {v}")
-                        ans = st.multiselect("Жауап", ["A", "B", "C", "D"], key=f"q_{q['id']}")
+                        ans = st.multiselect("Жауап", ["A", "B", "C", "D"], key=f"dyn_q_{q['id']}")
                         answers[q['id']] = ans
+                        question_times[q['id']] = allowed_seconds
                         st.divider()
                     
-                    if st.form_submit_button("Тестті аяқтау"):
-                        score = 0
+                    if st.form_submit_button("Тестті аяқтау және бонустарды есептеу"):
+                        elapsed_total = time.time() - st.session_state.test_start_time
+                        base_score = 0
+                        bonus_score = 0
+                        
                         for q in qs:
                             if set(answers.get(q['id'], [])) == set(q['correct']):
-                                score += 1
-                        st.success(f"Нәтиже: {score} / {len(qs)}")
+                                base_score += 1
+                                if elapsed_total < (sum(question_times.values()) * 0.4):
+                                    bonus_score += 0.5 
+                                    
+                        total_final_score = base_score + bonus_score
+                        st.success(f"🎉 Тест аяқталды! Негізгі ұпай: {base_score} | ⚡ Жылдамдық бонусы: +{bonus_score} | Жалпы: {total_final_score}")
+                        
+                        st.session_state.app_data["results"].append({
+                            "student": user, "subject": "Жалпы тест", "score": total_final_score, "total": len(qs), "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+                        })
+                        save_data(st.session_state.app_data)
             else:
-                st.warning("Сұрақтар жоқ.")
+                st.warning("Әзірге сұрақтар жоқ.")
 
         with tab_s2:
-            st.subheader("⚔️ 4x4 Командалық турнир")
+            st.subheader("⚔️ 4x4 Командалық турнир жүйесі")
             
             warnings_accepted = st.session_state.app_data["team_warning_accepted"]
             if not warnings_accepted.get(user, False):
@@ -288,8 +367,8 @@ else:
                     st.warning("Сіз командадан шықтыңыз!")
                     st.rerun()
             else:
-                st.write("### Жаңа команда ашу немесе қосылу")
-                with st.form("create_team"):
+                st.write("### Жаңа команда ашу немесе командаға қосылу")
+                with st.form("create_team_form"):
                     new_t_name = st.text_input("Команда атауы")
                     if st.form_submit_button("Команда құру (Капитан болу)"):
                         if new_t_name and new_t_name not in teams:
@@ -300,42 +379,46 @@ else:
                                 "members": [user]
                             }
                             save_data(st.session_state.app_data)
-                            st.success("Команда құрылды!")
+                            st.success(f"'{new_t_name}' командасы сәтті құрылды!")
                             st.rerun()
                         else:
-                            st.error("Қате атау.")
+                            st.error("Команда атауы бос немесе бұрын бар.")
                 
                 st.divider()
-                st.write("### Қолжетімді командалар:")
+                st.write("### Қолжетімді командалар (4x4):")
                 if teams:
                     for t_name, t_data in teams.items():
-                        st.write(f"🛡️ **{t_name}** | Капитан: {t_data['captain']} | Сынып: {t_data['class_level']} | Мүшелер: {len(t_data['members'])}/4")
+                        st.write(f"🛡️ **{t_name}** | Капитан: {t_data['captain']} | Сынып деңгейі: {t_data['class_level']}-сынып | Мүшелер: {len(t_data['members'])}/4")
                         if student_class > t_data["class_level"]:
-                            st.caption("⚠️ Сыныбыңыз үлкен болғандықтан қосыла алмайсыз.")
+                            st.caption("⚠️ Сіздің сыныбыңыз бұл команданың деңгейінен үлкен болғандықтан қосыла алмайсыз.")
                         elif len(t_data["members"]) >= 4:
-                            st.caption("🔒 Команда толы.")
+                            st.caption("🔒 Команда толы (4/4).")
                         else:
                             if st.button(f"Қосылу: {t_name}", key=f"join_{t_name}"):
                                 t_data["members"].append(user)
                                 save_data(st.session_state.app_data)
-                                st.success("Қосылдыңыз!")
+                                st.success("Командаға сәтті қосылдыңыз!")
                                 st.rerun()
                 else:
-                    st.info("Командалар жоқ.")
+                    st.info("Әзірге ашылған командалар жоқ.")
 
         with tab_s3:
-            st.subheader("💬 Ортақ чат")
+            st.subheader("💬 Жалпы чат")
             chat_messages = st.session_state.app_data.get("chat_messages", [])
             for msg in chat_messages:
-                st.write(f"💬 **{msg['user']}**: {msg['text']} *({msg['time']})*")
+                st.write(f"💬 **{msg['user']}** ({msg.get('time', '')}): {msg['text']}")
                 
-            with st.form("chat_form", clear_on_submit=True):
-                txt = st.text_input("Хабарлама жазу:")
+            with st.form("student_chat_form", clear_on_submit=True):
+                msg_text = st.text_input("Хабарлама жазыңыз:")
                 if st.form_submit_button("Жіберу"):
-                    if txt:
-                        chat_messages.append({"user": user, "text": txt, "time": datetime.now().strftime("%Y-%m-%d %H:%M")})
-                        save_data(st.session_state.app_data)
-                        st.rerun()
+                    if msg_text:
+                        if check_bad_words_and_ban(user, msg_text):
+                            st.error("⛔ Боқтық сөз қолданғаныңыз үшін жүйе сізді 15 күнге банға жіберді!")
+                            st.rerun()
+                        else:
+                            chat_messages.append({"user": user, "text": msg_text, "time": datetime.now().strftime("%Y-%m-%d %H:%M")})
+                            save_data(st.session_state.app_data)
+                            st.rerun()
 
         with tab_s4:
             st.subheader("📩 Директорға өтініш (Заява директора)")
@@ -357,10 +440,10 @@ else:
                         st.rerun()
 
         with tab_s5:
-            st.subheader("👤 Профиль")
+            st.subheader("👤 Профиль мәліметтері")
             st.write(f"**Логин:** {user}")
             st.write(f"**Бағыт:** {student_dir}")
-            st.write(f"**Сынып:** {student_class}-сынып")
+            st.write(f"**Сыныбы:** {student_class}-сынып")
 
     elif role == "Teacher":
         st.title(f"🏫 Мұғалім кабинеті: {user}")
@@ -368,4 +451,10 @@ else:
 
     elif role == "Parent":
         st.title(f"👪 Ата-ана кабинеті: {user}")
-        st.write("Балаңыздың нәтижелерін бақылай аласыз.")
+        results = st.session_state.app_data.get("results", [])
+        st.subheader("📈 Оқушылардың нәтижелері мен бонустары")
+        if results:
+            for r in reversed(results):
+                st.write(f"👤 Оқушы: **{r['student']}** | Ұпай: **{r['score']}** ({r['date']})")
+        else:
+            st.info("Нәтижелер әзірге жоқ.")

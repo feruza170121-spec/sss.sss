@@ -693,79 +693,58 @@ else:
                             save_data(st.session_state.app_data)
                             st.success("Аппеляция сәтті жіберілді!")
                         else:
-                            st.error("Мәтін бос болмауы тиіс!")
-
-                if st.button("Басқа тестке өту"):
-                    st.session_state.test_submitted = False
-                    st.rerun()
+                            st.error("Аппеляция мәтіні бос болмауы тиіс.")
 
         with tab_s4:
             st.subheader("💬 Ортақ чат")
-            bans = st.session_state.app_data.get("bans", {})
-            is_banned = False
-            if user in bans:
-                b_until = datetime.strptime(bans[user], "%Y-%m-%d %H:%M:%S")
-                if datetime.now() < b_until:
-                    is_banned = True
-                    st.error(f"⛔ Бандасыз! Уақыты: {b_until}")
-            
             chat_messages = st.session_state.app_data.get("chat_messages", [])
             for msg in chat_messages:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
                 
-            if not is_banned:
-                with st.form("student_chat_form", clear_on_submit=True):
-                    msg_text = st.text_input("Хабарлама жазу:")
-                    if st.form_submit_button("Жіберу"):
-                        if msg_text:
-                            if check_bad_words_and_ban(user, msg_text):
-                                st.error("⛔ Боқтық сөз үшін 15 күнге банға түстіңіз!")
-                                st.rerun()
-                            else:
-                                chat_messages.append({
-                                    "user": user,
-                                    "text": msg_text,
-                                    "time": datetime.now().strftime("%Y-%m-%d %H:%M")
-                                })
-                                save_data(st.session_state.app_data)
-                                st.rerun()
+            with st.form("student_chat_form", clear_on_submit=True):
+                s_msg = st.text_input("Хабарлама жазу:")
+                if st.form_submit_button("Жіберу"):
+                    if s_msg.strip():
+                        is_banned = check_bad_words_and_ban(user, s_msg)
+                        if is_banned:
+                            st.error("⛔ Сіздің хабарламаңыздан тыйым салынған сөздер табылды! Жүйе ережесі бойынша чаттағы аккаунтыңыз 15 күнге бұғатталды.")
+                        else:
+                            chat_messages.append({
+                                "user": f"{user} (Оқушы)",
+                                "text": s_msg,
+                                "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                            })
+                            save_data(st.session_state.app_data)
+                            st.rerun()
 
         with tab_s5:
-            st.subheader("📝 Заява (Өтініш) жазу")
-            with st.form("student_application_form", clear_on_submit=True):
-                app_text = st.text_area("Директорға арналған өтініш мәтіні:")
+            st.subheader("📝 Директорға немесе мұғалімге заява (өтініш) жазу")
+            with st.form("application_form", clear_on_submit=True):
+                app_text = st.form_submit_button = st.text_area("Заяваның мәтіні:")
                 if st.form_submit_button("Заяваны жіберу"):
-                    if app_text.strip():
+                    if isinstance(app_text, str) and app_text.strip():
                         if "applications" not in st.session_state.app_data:
                             st.session_state.app_data["applications"] = []
-                        
                         st.session_state.app_data["applications"].append({
                             "student": user,
                             "text": app_text,
                             "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                         })
                         save_data(st.session_state.app_data)
-                        st.success("Заяваңыз директорға сәтті жіберілді!")
-                    else:
-                        st.error("Заява мәтіні бос болмауы тиіс!")
+                        st.success("Заява сәтті жіберілді!")
 
         with tab_s6:
-            st.subheader("⚖️ Менің жіберген аппеляцияларым")
+            st.subheader("⚖️ Мен жіберген аппеляциялар")
             appeals = st.session_state.app_data.get("appeals", [])
-            my_apps = [a for a in appeals if a['student'] == user]
-            if my_apps:
-                for ap in reversed(my_apps):
+            my_appeals = [ap for ap in appeals if ap['student'] == user]
+            if my_appeals:
+                for ap in reversed(my_appeals):
                     st.write(f"📚 **Пән:** {ap['subject']} | 🕒 **Уақыты:** {ap['time']}")
-                    st.markdown(f"> **Шағымыңыз:** {ap['text']}")
+                    st.markdown(f"> {ap['text']}")
                     st.divider()
             else:
-                st.info("Сіз әзірге ешқандай аппеляция жіберген жоқсыз.")
+                st.info("Сіз әзірге аппеляция жіберген жоқсыз.")
 
         with tab_s7:
             st.subheader("📬 Хабарландырулар")
-            my_notifs = st.session_state.app_data["notifications"].get(user, [])
-            if my_notifs:
-                for n in reversed(my_notifs):
-                    st.info(n)
-            else:
-                st.info("Жаңа хабарландырулар жоқ.")
+            st.info("Жаңа хабарландырулар жоқ.")

@@ -408,18 +408,17 @@ else:
             for msg in chat_messages:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
                 
-            with st.form("dir_chat_form", clear_on_submit=True):
-                dir_msg = st.text_input("Чатқа хабарлама жазу:")
-                if st.form_submit_button("Жіберу"):
-                    dir_msg_str = str(dir_msg) if dir_msg is not None else ""
-                    if dir_msg_str and dir_msg_str.strip():
-                        chat_messages.append({
-                            "user": f"{user} (Директор)",
-                            "text": dir_msg_str,
-                            "time": datetime.now().strftime("%Y-%m-%d %H:%M")
-                        })
-                        save_data(st.session_state.app_data)
-                        st.rerun()
+            dir_msg = st.text_input("Чатқа хабарлама жазу:", key="dir_chat_input")
+            if st.button("Директор хабарламасын жіберу"):
+                dir_msg_str = str(dir_msg) if dir_msg is not None else ""
+                if dir_msg_str and dir_msg_str.strip():
+                    chat_messages.append({
+                        "user": f"{user} (Директор)",
+                        "text": dir_msg_str,
+                        "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    save_data(st.session_state.app_data)
+                    st.rerun()
 
         with tab7:
             st.subheader("💬 Ортақ чат бан жүйесі")
@@ -549,18 +548,17 @@ else:
             for msg in chat_messages:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
                 
-            with st.form("teacher_chat_form", clear_on_submit=True):
-                t_msg = st.text_input("Чатқа хабарлама жазу:")
-                if st.form_submit_button("Жіберу"):
-                    t_msg_str = str(t_msg) if t_msg is not None else ""
-                    if t_msg_str and t_msg_str.strip():
-                        chat_messages.append({
-                            "user": f"{user} (Мұғалім)",
-                            "text": t_msg_str,
-                            "time": datetime.now().strftime("%Y-%m-%d %H:%M")
-                        })
-                        save_data(st.session_state.app_data)
-                        st.rerun()
+            t_msg = st.text_input("Чатқа хабарлама жазу:", key="teacher_chat_input")
+            if st.button("Мұғалім хабарламасын жіберу"):
+                t_msg_str = str(t_msg) if t_msg is not None else ""
+                if t_msg_str and t_msg_str.strip():
+                    chat_messages.append({
+                        "user": f"{user} (Мұғалім)",
+                        "text": t_msg_str,
+                        "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    save_data(st.session_state.app_data)
+                    st.rerun()
 
         with t_tab3:
             st.subheader("⚖️ Оқушылардан түскен тест аппеляциялары")
@@ -703,33 +701,30 @@ else:
             for msg in chat_messages:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
                 
-            # Түзетілген жер: form толығымен дұрыс ашылып, ішінде submit_button тұр
-            with st.form("student_chat_form", clear_on_submit=True):
-                s_msg = st.text_input("Хабарлама жазу:")
-                submitted_chat = st.form_submit_button("Жіберу")
-                if submitted_chat:
-                    s_msg_str = str(s_msg) if s_msg is not None else ""
-                    if s_msg_str and s_msg_str.strip():
-                        is_banned = check_bad_words_and_ban(user, s_msg_str)
-                        if is_banned:
-                            st.error("⛔ Сіздің хабарламаңыздан тыйым салынған сөздер табылды! Жүйе ережесі бойынша чаттағы аккаунтыңыз 15 күнге бұғатталды.")
-                        else:
-                            chat_messages.append({
-                                "user": f"{user} (Оқушы)",
-                                "text": s_msg_str,
-                                "time": datetime.now().strftime("%Y-%m-%d %H:%M")
-                            })
-                            save_data(st.session_state.app_data)
-                            st.rerun()
+            # Форма алынып тасталып, қате шықпайтын тұрақты түймеге өзгертілді
+            s_msg = st.text_input("Хабарлама жазу:", key="student_chat_input_field")
+            if st.button("Хабарлама жіберу"):
+                s_msg_str = str(s_msg) if s_msg is not None else ""
+                if s_msg_str and s_msg_str.strip():
+                    is_banned = check_bad_words_and_ban(user, s_msg_str)
+                    if is_banned:
+                        st.error("⛔ Сіздің хабарламаңыздан тыйым салынған сөздер табылды! Жүйе ережесі бойынша чаттағы аккаунтыңыз 15 күнге бұғатталды.")
                     else:
-                        st.error("Хабарлама бос болмауы тиіс.")
+                        chat_messages.append({
+                            "user": f"{user} (Оқушы)",
+                            "text": s_msg_str,
+                            "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                        })
+                        save_data(st.session_state.app_data)
+                        st.rerun()
+                else:
+                    st.error("Хабарлама бос болмауы тиіс.")
 
         with tab_s5:
             st.subheader("📝 Директорға немесе мұғалімге заява (өтініш) жазу")
             with st.form("application_form", clear_on_submit=True):
                 app_text = st.text_area("Заяваның мәтіні:")
-                submitted_app = st.form_submit_button("Заяваны жіберу")
-                if submitted_app:
+                if st.form_submit_button("Заяваны жіберу"):
                     app_text_str = str(app_text) if app_text is not None else ""
                     if app_text_str and app_text_str.strip():
                         if "applications" not in st.session_state.app_data:

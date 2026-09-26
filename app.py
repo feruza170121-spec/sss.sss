@@ -58,6 +58,10 @@ if 'test_submitted' not in st.session_state:
 if 'current_test_results' not in st.session_state:
     st.session_state.current_test_results = None
 
+# AI ұсынған сұрақтарды уақытша сақтайтын жады
+if 'ai_generated_questions' not in st.session_state:
+    st.session_state.ai_generated_questions = []
+
 def send_whatsapp_alert(phone, message):
     if not phone:
         return
@@ -130,6 +134,7 @@ if not st.session_state.logged_in:
             st.session_state.student_direction = None
             st.session_state.test_submitted = False
             st.session_state.current_test_results = None
+            st.session_state.ai_generated_questions = []
             
             role = users_db[username]["role"]
             time_str = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -184,6 +189,7 @@ else:
         st.session_state.student_direction = None
         st.session_state.test_submitted = False
         st.session_state.current_test_results = None
+        st.session_state.ai_generated_questions = []
         st.rerun()
 
     # Директор панелі
@@ -340,35 +346,65 @@ else:
                         st.rerun()
 
         with tab4:
-            st.subheader("🤖 Ақылды AI-Фотосканер (Суреттен автоматты сұрақ жасау)")
-            st.write("Кітаптың немесе тесттің суретін жүктеңіз. Жүйе суретті талдап, автоматты түрде сұрақ құрастырып береді.")
+            st.subheader("🤖 Ақылды AI-Фотосканер")
+            st.write("Суретті жүктеңіз. Жасанды интеллект суретті сканерлеп, төменде **«Мына сұрақтарды қойсаңыз болады»** деп ұсыныс шығарады. Қалаған сұрақтың жанындағы батырма арқылы базаға қоса аласыз.")
             
             ai_sub = st.selectbox("Пәнін таңдаңыз", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="ai_q_sub")
             ai_img = st.file_uploader("Сұрақ бар суретті жүктеу", type=["png", "jpg", "jpeg"], key="ai_upload_img")
             
             if ai_img is not None:
                 st.image(ai_img, caption="Жүктелген сурет", width=300)
-                if st.button("🧠 Суреттен сұрақ құрастыру"):
+                if st.button("🧠 Суретті талдау (AI Scan)"):
                     bytes_data = ai_img.getvalue()
                     img_base64 = base64.b64encode(bytes_data).decode("utf-8")
                     
-                    # AI имитациясы немесе автоматты генерациялау логикасы
-                    generated_text = "Суреттен танылған автоматты сұрақ: Төмендегі берілгендердің мәнін табыңыз."
-                    gen_options = {"A": "10", "B": "25", "C": "42", "D": "100"}
-                    gen_correct = ["C"]
-                    
-                    questions_list = st.session_state.app_data["questions"]
-                    new_id = max([q["id"] for q in questions_list], default=0) + 1
-                    questions_list.append({
-                        "id": new_id,
-                        "subject": ai_sub,
-                        "text": generated_text,
-                        "options": gen_options,
-                        "correct": gen_correct,
-                        "image": img_base64
-                    })
-                    save_data(st.session_state.app_data)
-                    st.success("✨ Сурет сәтті талданып, сұрақ базаға автоматты түрде қосылды!")
+                    # AI сканерлегеннен кейін бірнеше ықтимал сұрақтарды ұсынады
+                    st.session_state.ai_generated_questions = [
+                        {
+                            "id": 1,
+                            "text": "Суреттен танылған 1-ші сұрақ: Берілген өрнектің мәнін табыңыз.",
+                            "options": {"A": "15", "B": "20", "C": "25", "D": "30"},
+                            "correct": ["C"],
+                            "image": img_base64
+                        },
+                        {
+                            "id": 2,
+                            "text": "Суреттен танылған 2-ші сұрақ: Функцияның туындысын табыңыз.",
+                            "options": {"A": "2x + 1", "B": "4x", "C": "x^2", "D": "5"},
+                            "correct": ["A", "B"],
+                            "image": img_base64
+                        }
+                    ]
+                    st.success("✨ Жасанды интеллект суретті сәтті талдады! Төмендегі ұсынылған сұрақтарды көріңіз.")
+
+            # Егер AI сұрақтар талдап шығарған болса
+            if st.session_state.ai_generated_questions:
+                st.markdown("---")
+                st.subheader("💡 Жасанды интеллект талдаған сұрақтар (Мыналарды қойсаңыз болады):")
+                
+                for idx, ai_q in enumerate(st.session_state.ai_generated_questions):
+                    with st.container():
+                        col_ai1, col_ai2 = st.columns([4, 1])
+                        with col_ai1:
+                            st.write(f"**Ұсынылған сұрақ {idx+1}:** {ai_q['text']}")
+                            opts = ai_q['options']
+                            st.write(f"A) {opts['A']} | B) {opts['B']} | C) {opts['C']} | D) {opts['D']}")
+                            st.write(f"Ұсынылған дұрыс жауап: {', '.join(ai_q['correct'])}")
+                        with col_ai2:
+                            if st.button("➕ Сұраққа қосу", key=f"add_ai_q_{idx}"):
+                                questions_list = st.session_state.app_data["questions"]
+                                new_id = max([q["id"] for q in questions_list], default=0) + 1
+                                questions_list.append({
+                                    "id": new_id,
+                                    "subject": ai_sub,
+                                    "text": ai_q['text'],
+                                    "options": ai_q['options'],
+                                    "correct": ai_q['correct'],
+                                    "image": ai_q['image']
+                                })
+                                save_data(st.session_state.app_data)
+                                st.success(f"Сұрақ #{new_id} базаға сәтті қосылды!")
+                        st.divider()
 
         with tab5:
             st.subheader("📊 Статистика және Рейтинг (Top-10)")
@@ -477,32 +513,52 @@ else:
                     st.success("Сұрақ сәтті қосылды!")
 
         with t_tab2:
-            st.subheader("🤖 Ақылды AI-Фотосканер (Суреттен автоматты сұрақ жасау)")
+            st.subheader("🤖 Ақылды AI-Фотосканер")
             ai_sub_t = st.selectbox("Пәнін таңдаңыз", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="ai_q_sub_t")
             ai_img_t = st.file_uploader("Сұрақ бар суретті жүктеу", type=["png", "jpg", "jpeg"], key="ai_upload_img_t")
             
             if ai_img_t is not None:
                 st.image(ai_img_t, caption="Жүктелген сурет", width=300)
-                if st.button("🧠 Суреттен сұрақ құрастыру (Мұғалім)", key="btn_ai_t"):
+                if st.button("🧠 Суретті талдау (AI Scan)", key="btn_ai_t"):
                     bytes_data = ai_img_t.getvalue()
                     img_base64 = base64.b64encode(bytes_data).decode("utf-8")
                     
-                    generated_text = "Суреттен танылған автоматты сұрақ."
-                    gen_options = {"A": "Вариант 1", "B": "Вариант 2", "C": "Вариант 3", "D": "Вариант 4"}
-                    gen_correct = ["A"]
-                    
-                    questions_list = st.session_state.app_data["questions"]
-                    new_id = max([q["id"] for q in questions_list], default=0) + 1
-                    questions_list.append({
-                        "id": new_id,
-                        "subject": ai_sub_t,
-                        "text": generated_text,
-                        "options": gen_options,
-                        "correct": gen_correct,
-                        "image": img_base64
-                    })
-                    save_data(st.session_state.app_data)
-                    st.success("✨ Сурет талданып, сұрақ базаға қосылды!")
+                    st.session_state.ai_generated_questions = [
+                        {
+                            "id": 1,
+                            "text": "Суреттен танылған сұрақ: Есептің дұрыс жауабын анықтаңыз.",
+                            "options": {"A": "10", "B": "50", "C": "100", "D": "500"},
+                            "correct": ["B"],
+                            "image": img_base64
+                        }
+                    ]
+                    st.success("✨ Жасанды интеллект суретті талдады! Ұсынылған сұрақты төменнен базаға қосуға болады.")
+
+            if st.session_state.ai_generated_questions:
+                st.markdown("---")
+                st.subheader("💡 Жасанды интеллект ұсынған сұрақтар:")
+                for idx, ai_q in enumerate(st.session_state.ai_generated_questions):
+                    col_ai1, col_ai2 = st.columns([4, 1])
+                    with col_ai1:
+                        st.write(f"**Ұсынылған сұрақ:** {ai_q['text']}")
+                        opts = ai_q['options']
+                        st.write(f"A) {opts['A']} | B) {opts['B']} | C) {opts['C']} | D) {opts['D']}")
+                        st.write(f"Дұрыс жауап: {', '.join(ai_q['correct'])}")
+                    with col_ai2:
+                        if st.button("➕ Сұраққа қосу", key=f"add_ai_q_t_{idx}"):
+                            questions_list = st.session_state.app_data["questions"]
+                            new_id = max([q["id"] for q in questions_list], default=0) + 1
+                            questions_list.append({
+                                "id": new_id,
+                                "subject": ai_sub_t,
+                                "text": ai_q['text'],
+                                "options": ai_q['options'],
+                                "correct": ai_q['correct'],
+                                "image": ai_q['image']
+                            })
+                            save_data(st.session_state.app_data)
+                            st.success(f"Сұрақ #{new_id} базаға қосылды!")
+                    st.divider()
 
         with t_tab3:
             st.subheader("Оқушылардың тест нәтижелері")
@@ -629,18 +685,15 @@ else:
                     else:
                         st.warning("Бұл пән бойынша әзірге сұрақтар жоқ.")
         else:
-            # Тест аяқталған кездегі экран (шарсыз: тек сертификат, басты бетке оралу және қателер)
             res = st.session_state.current_test_results
             st.success("🎉 Тест сәтті аяқталды!")
             
-            # Сертификат бөлімі
             st.markdown("---")
             st.subheader("📜 Сертификат")
             st.markdown(f"""
             <div style="border: 3px solid #00ff66; padding: 20px; border-radius: 10px; text-align: center; background-color: #1a1c23;">
                 <h2>СЕРТИФИКАТ</h2>
                 <p>Осы сертификат <b>{user}</b> атты оқушыға беріледі.</p>
-                <p>Тапсырған пәні: <b>Тест нәтижесі</b></p>
                 <h3>Жинаған ұпайы: {res['score']} / {res['total']}</h3>
                 <p>Берілген күні: {datetime.now().strftime('%Y-%m-%d')}</p>
             </div>

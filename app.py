@@ -701,7 +701,6 @@ else:
             for msg in chat_messages:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
                 
-            # Форма алынып тасталып, қате шықпайтын тұрақты түймеге өзгертілді
             s_msg = st.text_input("Хабарлама жазу:", key="student_chat_input_field")
             if st.button("Хабарлама жіберу"):
                 s_msg_str = str(s_msg) if s_msg is not None else ""
@@ -722,22 +721,22 @@ else:
 
         with tab_s5:
             st.subheader("📝 Директорға немесе мұғалімге заява (өтініш) жазу")
-            with st.form("application_form", clear_on_submit=True):
-                app_text = st.text_area("Заяваның мәтіні:")
-                if st.form_submit_button("Заяваны жіберу"):
-                    app_text_str = str(app_text) if app_text is not None else ""
-                    if app_text_str and app_text_str.strip():
-                        if "applications" not in st.session_state.app_data:
-                            st.session_state.app_data["applications"] = []
-                        st.session_state.app_data["applications"].append({
-                            "student": user,
-                            "text": app_text_str,
-                            "time": datetime.now().strftime("%Y-%m-%d %H:%M")
-                        })
-                        save_data(st.session_state.app_data)
-                        st.success("Заява сәтті жіберілді!")
-                    else:
-                        st.error("Заява мәтіні бос болмауы тиіс.")
+            # Заява бөлімі де формадан тазартылып, тұрақты түймеге ауыстырылды (TypeError кетпес үшін)
+            app_text = st.text_area("Заяваның мәтіні:", key="student_app_text_field")
+            if st.button("Заяваны жіберу"):
+                app_text_str = str(app_text) if app_text is not None else ""
+                if app_text_str and app_text_str.strip():
+                    if "applications" not in st.session_state.app_data:
+                        st.session_state.app_data["applications"] = []
+                    st.session_state.app_data["applications"].append({
+                        "student": user,
+                        "text": app_text_str,
+                        "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    save_data(st.session_state.app_data)
+                    st.success("Заява сәтті жіберілді!")
+                else:
+                    st.error("Заява мәтіні бос болмауы тиіс.")
 
         with tab_s6:
             st.subheader("⚖️ Мен жіберген аппеляциялар")

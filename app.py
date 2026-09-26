@@ -352,30 +352,30 @@ else:
                 st.success(f"Дуэль уақыты {new_duel_timer} минут етіп сақталды!")
             
             st.divider()
-            with st.form("duel_q_form"):
-                dq_text = st.text_area("Дуэль сұрағының мәтіні")
-                dq_a = st.text_input("A нұсқасы", key="dq_a")
-                dq_b = st.text_input("B нұсқасы", key="dq_b")
-                dq_c = st.text_input("C нұсқасы", key="dq_c")
-                dq_d = st.text_input("D нұсқасы", key="dq_d")
-                dc_a = st.checkbox("A дұрыс", key="dc_a")
-                dc_b = st.checkbox("B дұрыс", key="dc_b")
-                dc_c = st.checkbox("C дұрыс", key="dc_c")
-                dc_d = st.checkbox("D дұрыс", key="dc_d")
+            st.subheader("Дуэль сұрағын қосу")
+            dq_text = st.text_area("Дуэль сұрағының мәтіні", key="duel_q_text_field")
+            dq_a = st.text_input("A нұсқасы", key="dq_a")
+            dq_b = st.text_input("B нұсқасы", key="dq_b")
+            dq_c = st.text_input("C нұсқасы", key="dq_c")
+            dq_d = st.text_input("D нұсқасы", key="dq_d")
+            dc_a = st.checkbox("A дұрыс", key="dc_a")
+            dc_b = st.checkbox("B дұрыс", key="dc_b")
+            dc_c = st.checkbox("C дұрыс", key="dc_c")
+            dc_d = st.checkbox("D дұрыс", key="dc_d")
+            
+            if st.button("Дуэль сұрағын қосу", key="add_duel_q_btn"):
+                corrects = []
+                if dc_a: corrects.append("A")
+                if dc_b: corrects.append("B")
+                if dc_c: corrects.append("C")
+                if dc_d: corrects.append("D")
                 
-                if st.form_submit_button("Дуэль сұрағын қосу"):
-                    corrects = []
-                    if dc_a: corrects.append("A")
-                    if dc_b: corrects.append("B")
-                    if dc_c: corrects.append("C")
-                    if dc_d: corrects.append("D")
-                    
-                    d_qs = st.session_state.app_data["duel_questions"]
-                    new_dq_id = max([q["id"] for q in d_qs], default=0) + 1
-                    d_qs.append({"id": new_dq_id, "text": dq_text, "options": {"A": dq_a, "B": dq_b, "C": dq_c, "D": dq_d}, "correct": corrects})
-                    save_data(st.session_state.app_data)
-                    st.success("Дуэль сұрағы сәтті қосылды!")
-                    st.rerun()
+                d_qs = st.session_state.app_data["duel_questions"]
+                new_dq_id = max([q["id"] for q in d_qs], default=0) + 1
+                d_qs.append({"id": new_dq_id, "text": dq_text, "options": {"A": dq_a, "B": dq_b, "C": dq_c, "D": dq_d}, "correct": corrects})
+                save_data(st.session_state.app_data)
+                st.success("Дуэль сұрағы сәтті қосылды!")
+                st.rerun()
 
         with tab5:
             st.subheader("🏆 Оқушыларға атақ (Badge) беру")

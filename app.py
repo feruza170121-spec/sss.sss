@@ -72,9 +72,6 @@ if 'logged_in' not in st.session_state:
 if 'test_submitted' not in st.session_state:
     st.session_state.test_submitted = False
 
-if 'current_test_results' not in st.session_state:
-    st.session_state.current_test_results = None
-
 if 'active_duel' not in st.session_state:
     st.session_state.active_duel = None
 
@@ -117,10 +114,13 @@ if not st.session_state.logged_in:
     if st.button("Кіру"):
         users_db = st.session_state.app_data["users"]
         if username in users_db and users_db[username]["password"] == password:
-            st.session_state.logged_in = True
-            st.session_state.current_user = username
-            st.session_state.test_submitted = False
-            st.rerun()
+            if users_db[username].get("blocked", False):
+                st.error("Бұл аккаунт бұғатталған!")
+            else:
+                st.session_state.logged_in = True
+                st.session_state.current_user = username
+                st.session_state.test_submitted = False
+                st.rerun()
         else:
             st.error("Қате логин немесе пароль!")
 

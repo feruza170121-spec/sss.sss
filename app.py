@@ -14,18 +14,14 @@ def load_data():
         "users": {
             "director": {"password": "123", "role": "Director", "direction": "Барлығы", "limit": None, "blocked": False},
             "teacher1": {"password": "123", "role": "Teacher", "direction": "Барлығы", "limit": None, "blocked": False},
-            "student1": {"password": "123", "role": "Student", "direction": "Математика - Физика", "limit": None, "blocked": False},
-            "parent1": {"password": "123", "role": "Parent", "direction": "Барлығы", "limit": None, "blocked": False}
+            "student1": {"password": "123", "role": "Student", "direction": "Математика - Физика", "limit": None, "blocked": False}
         },
         "questions": [],
-        "duel_questions": [], 
         "login_logs": [],
         "results": [],
-        "duel_results": [],
         "feedback": [],
         "friends": {},
         "notifications": {},
-        "duels": [],
         "badges": {}, 
         "chat_messages": [], 
         "bans": {}, 
@@ -34,7 +30,6 @@ def load_data():
         "settings": {
             "timer_enabled": False,
             "timer_duration": 20,
-            "duel_timer": 3, 
             "whatsapp_phone": "",
             "allow_export": False
         }
@@ -47,7 +42,6 @@ def load_data():
                     if key not in loaded:
                         loaded[key] = default_data[key]
                 
-                # Директордың паролі мен рөлін әрқашан жаңартып тұру (қате кетпеу үшін)
                 if "users" not in loaded:
                     loaded["users"] = {}
                 loaded["users"]["director"] = {"password": "123", "role": "Director", "direction": "Барлығы", "limit": None, "blocked": False}
@@ -55,11 +49,9 @@ def load_data():
                 for u in loaded["users"]:
                     if "direction" not in loaded["users"][u]:
                         loaded["users"][u]["direction"] = "Математика - Физика"
-                for key_sub in ["badges", "chat_messages", "bans", "duel_questions", "duel_results", "notifications", "applications", "appeals", "duels"]:
+                for key_sub in ["badges", "chat_messages", "bans", "notifications", "applications", "appeals"]:
                     if key_sub not in loaded:
                         loaded[key_sub] = {} if key_sub in ["badges", "bans", "notifications"] else []
-                if "duel_timer" not in loaded["settings"]:
-                    loaded["settings"]["duel_timer"] = 3
                 return loaded
             except Exception:
                 return default_data
@@ -87,9 +79,6 @@ if 'test_submitted' not in st.session_state:
 
 if 'current_test_results' not in st.session_state:
     st.session_state.current_test_results = None
-
-if 'active_duel' not in st.session_state:
-    st.session_state.active_duel = None
 
 BAD_WORDS = ["ботк", "сұка", "обал", "шайтан", "тексерілмеген_сөз", "қарапайым_боқтық", "ақымақ", "есек", "мұрын", "құрт", "сорлы"] 
 
@@ -219,7 +208,6 @@ if not st.session_state.logged_in:
             st.session_state.login_attempts[username] = 0
             st.session_state.test_submitted = False
             st.session_state.current_test_results = None
-            st.session_state.active_duel = None
             
             role = users_db[username]["role"]
             time_str = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -273,7 +261,6 @@ else:
         st.session_state.current_user = None
         st.session_state.test_submitted = False
         st.session_state.current_test_results = None
-        st.session_state.active_duel = None
         st.rerun()
 
     if role == "Director":
@@ -291,8 +278,8 @@ else:
                     st.rerun()
             st.stop()
 
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12 = st.tabs([
-            "Қолданушылар", "Мұғалім Лимиттері", "Сұрақтар", "⚔️ Дуэль", "🏆 Атақтар", "💬 Ортақ чат", "💬 Чат & Бан", "📥 Заявалар", "⚖️ Аппеляциялар", "📊 Статистика", "Қолданушы қосу", "Баптаулар"
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
+            "Қолданушылар", "Мұғалім Лимиттері", "Сұрақтар", "🏆 Атақтар", "💬 Ортақ чат", "💬 Чат & Бан", "📥 Заявалар", "⚖️ Аппеляциялар", "📊 Статистика", "Баптаулар"
         ])
         
         with tab1:
@@ -350,40 +337,6 @@ else:
                 st.success("Сәтті қосылды!")
 
         with tab4:
-            st.subheader("⚔️ Дуэль сұрақтары мен уақытын басқару")
-            new_duel_timer = st.number_input("Дуэль уақыты (минут)", min_value=1, max_value=60, value=st.session_state.app_data["settings"].get("duel_timer", 3), key="duel_timer_input_field")
-            if st.button("Дуэль уақытын сақтау", key="save_duel_timer_btn"):
-                st.session_state.app_data["settings"]["duel_timer"] = new_duel_timer
-                save_data(st.session_state.app_data)
-                st.success(f"Дуэль уақыты {new_duel_timer} минут етіп сақталды!")
-            
-            st.divider()
-            st.subheader("Дуэль сұрағын қосу")
-            dq_text = st.text_area("Дуэль сұрағының мәтіні", key="duel_q_text_field")
-            dq_a = st.text_input("A нұсқасы", key="dq_a")
-            dq_b = st.text_input("B нұсқасы", key="dq_b")
-            dq_c = st.text_input("C нұсқасы", key="dq_c")
-            dq_d = st.text_input("D нұсқасы", key="dq_d")
-            dc_a = st.checkbox("A дұрыс", key="dc_a")
-            dc_b = st.checkbox("B дұрыс", key="dc_b")
-            dc_c = st.checkbox("C дұрыс", key="dc_c")
-            dc_d = st.checkbox("D дұрыс", key="dc_d")
-            
-            if st.button("Дуэль сұрағын қосу", key="add_duel_q_btn"):
-                corrects = []
-                if dc_a: corrects.append("A")
-                if dc_b: corrects.append("B")
-                if dc_c: corrects.append("C")
-                if dc_d: corrects.append("D")
-                
-                d_qs = st.session_state.app_data["duel_questions"]
-                new_dq_id = max([q["id"] for q in d_qs], default=0) + 1
-                d_qs.append({"id": new_dq_id, "text": dq_text, "options": {"A": dq_a, "B": dq_b, "C": dq_c, "D": dq_d}, "correct": corrects})
-                save_data(st.session_state.app_data)
-                st.success("Дуэль сұрағы сәтті қосылды!")
-                st.rerun()
-
-        with tab5:
             st.subheader("🏆 Оқушыларға атақ (Badge) беру")
             students_list = [u for u, d in users_db.items() if d["role"] == "Student"]
             if students_list:
@@ -407,7 +360,7 @@ else:
                             st.warning("Атақ алынып тасталды!")
                             st.rerun()
 
-        with tab6:
+        with tab5:
             st.subheader("💬 Ортақ чат (Директор ретінде жазу)")
             chat_messages = st.session_state.app_data.get("chat_messages", [])
             for msg in chat_messages:
@@ -425,7 +378,7 @@ else:
                     save_data(st.session_state.app_data)
                     st.rerun()
 
-        with tab7:
+        with tab6:
             st.subheader("💬 Ортақ чат бан жүйесі")
             bans_db = st.session_state.app_data["bans"]
             now_dt = datetime.now()
@@ -450,7 +403,7 @@ else:
             else:
                 st.info("Қазір белсенді бан жоқ.")
 
-        with tab8:
+        with tab7:
             st.subheader("📥 Оқушылардан түскен заявалар")
             applications = st.session_state.app_data.get("applications", [])
             if applications:
@@ -465,7 +418,7 @@ else:
             else:
                 st.info("Әзірге заявалар жоқ.")
 
-        with tab9:
+        with tab8:
             st.subheader("⚖️ Тест кезіндегі аппеляциялар")
             appeals = st.session_state.app_data.get("appeals", [])
             if appeals:
@@ -480,7 +433,7 @@ else:
             else:
                 st.info("Әзірге аппеляциялар жоқ.")
 
-        with tab10:
+        with tab9:
             st.subheader("📊 Барлық оқушылар нәтижелері (Үлкеннен кішіге рейтинг)")
             results = st.session_state.app_data.get("results", [])
             if results:
@@ -491,31 +444,7 @@ else:
             else:
                 st.info("Нәтижелер жоқ.")
 
-        with tab11:
-            st.subheader("🔑 Жаңа қолданушы қосу")
-            new_u = st.text_input("Жаңа логин")
-            new_p = st.text_input("Пароль", type="password")
-            new_r = st.selectbox("Рөл", ["Student", "Parent", "Teacher"])
-            
-            new_dir = "Барлығы"
-            if new_r == "Student":
-                new_dir = st.selectbox("Оқушының бағыты", ["Математика - Физика", "Биология - Химия", "Ағылшын - Тарих", "География - Математика"])
-            
-            if st.button("Қолданушы жасау"):
-                if new_u and new_u not in users_db:
-                    users_db[new_u] = {
-                        "password": new_p, 
-                        "role": new_r, 
-                        "direction": new_dir, 
-                        "limit": None, 
-                        "blocked": False
-                    }
-                    save_data(st.session_state.app_data)
-                    st.success("Сәтті жасалды!")
-                else:
-                    st.error("Қате немесе бос емес логин.")
-
-        with tab12:
+        with tab10:
             st.subheader("⚙️ Баптаулар")
             st.session_state.app_data["settings"]["timer_enabled"] = st.checkbox("Таймер қосу", value=st.session_state.app_data["settings"]["timer_enabled"])
             st.session_state.app_data["settings"]["timer_duration"] = st.number_input("Уақыт (мин)", value=st.session_state.app_data["settings"]["timer_duration"])
@@ -582,24 +511,6 @@ else:
             else:
                 st.info("Әзірге аппеляциялар жоқ.")
 
-    elif role == "Parent":
-        st.title(f"Ата-ана кабинеті: {user} (T.A.S UBT.kz)")
-        tab_p1, tab_p2 = st.tabs(["📊 Балалардың нәтижелері", "💬 Жалпы чат"])
-        
-        with tab_p1:
-            results = st.session_state.app_data.get("results", [])
-            if results:
-                sorted_res = sorted(results, key=lambda x: x['score'], reverse=True)
-                for r in sorted_res:
-                    st.write(f"👤 Оқушы: **{r['student']}** | Пән: **{r['subject']}** | Ұпай: **{r['score']} / {r['total']}**")
-            else:
-                st.info("Нәтижелер жоқ.")
-                
-        with tab_p2:
-            chat_messages = st.session_state.app_data.get("chat_messages", [])
-            for msg in chat_messages:
-                st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
-
     elif role == "Student":
         st.title(f"Оқушы кабинеті: {user} (T.A.S UBT.kz)")
         student_direction = users_db[user].get("direction", "Математика - Физика")
@@ -608,8 +519,8 @@ else:
         if my_badge:
             st.success(f"⭐ Сіздің жеке атағыңыз: **{my_badge}**")
             
-        tab_s1, tab_s2, tab_s3, tab_s4, tab_s5, tab_s6, tab_s7, tab_s8 = st.tabs([
-            "👤 Профиль", "🏆 Рейтинг", "⚔️ Тест & Аппеляция", "💬 Ортақ чат", "📝 Заява", "⚖️ Менің аппеляцияларым", "📬 Хабарландырулар", "⚔️ Дуэль ойыны"
+        tab_s1, tab_s2, tab_s3, tab_s4, tab_s5, tab_s6, tab_s7 = st.tabs([
+            "👤 Профиль", "🏆 Рейтинг", "⚔️ Тест & Аппеляция", "💬 Ортақ чат", "📝 Заява", "⚖️ Менің аппеляцияларым", "📬 Хабарландырулар"
         ])
         
         with tab_s1:
@@ -691,8 +602,8 @@ else:
             st.divider()
             st.write("### ⚖️ Сұраққа қатысты аппеляция (шағым) беру:")
             ap_subject = st.selectbox("Пәні", ["Математикалық сауаттылық", "Оқу сауаттылығы", "Қазақстан тарихы", "Математика", "Физика", "Биология", "Химия", "Ағылшын тілі", "Дүние жүзі тарихы", "География"], key="student_app_sub")
-            ap_text = st.text_area("Аппеляция себебі (қай сұрақ, неліктен қате деп ойлайсыз):", key="student_app_txt")
-            if st.button("Аппеляцияны жіберу"):
+            ap_text = st.text_area("Аппеляция мәтіні")
+            if st.button("Аппеляция жіберу"):
                 if ap_text.strip():
                     if "appeals" not in st.session_state.app_data:
                         st.session_state.app_data["appeals"] = []
@@ -704,8 +615,6 @@ else:
                     })
                     save_data(st.session_state.app_data)
                     st.success("Аппеляция сәтті жіберілді!")
-                else:
-                    st.error("Аппеляция мәтіні бос болмауы тиіс.")
 
         with tab_s4:
             st.subheader("💬 Ортақ чат")
@@ -713,25 +622,30 @@ else:
             for msg in chat_messages:
                 st.write(f"💬 **{msg['user']}** ({msg['time']}): {msg['text']}")
             
-            s_msg = st.text_input("Хабарлама жазу:", key="student_chat_input")
-            if st.button("Хабарлама жіберу"):
-                s_msg_str = str(s_msg) if s_msg is not None else ""
-                if s_msg_str and s_msg_str.strip():
-                    if check_bad_words_and_ban(user, s_msg_str):
-                        st.error("⛔ Назар аударыңыз! Хабарламаңызда тыйым салынған сөздер бар. Аккаунтыңыз 15 күнге банға ілікті!")
-                    else:
-                        chat_messages.append({
-                            "user": user,
-                            "text": s_msg_str,
-                            "time": datetime.now().strftime("%Y-%m-%d %H:%M")
-                        })
-                        save_data(st.session_state.app_data)
-                        st.rerun()
+            bans_db = st.session_state.app_data.get("bans", {})
+            if user in bans_db and datetime.now() < datetime.strptime(bans_db[user], "%Y-%m-%d %H:%M:%S"):
+                st.error(f"⛔ Сіз чатта сөйлесуден бұғатталғансыз! Бан аяқталуы: {bans_db[user]}")
+            else:
+                s_msg = st.text_input("Хабарлама жазу:", key="student_chat_input")
+                if st.button("Жіберу"):
+                    s_msg_str = str(s_msg) if s_msg is not None else ""
+                    if s_msg_str and s_msg_str.strip():
+                        if check_bad_words_and_ban(user, s_msg_str):
+                            st.error("⛔ Сіздің хабарламаңызда тыйым салынған сөз бар! Аккаунтыңыз 15 күнге банға түсті.")
+                            st.rerun()
+                        else:
+                            chat_messages.append({
+                                "user": user,
+                                "text": s_msg_str,
+                                "time": datetime.now().strftime("%Y-%m-%d %H:%M")
+                            })
+                            save_data(st.session_state.app_data)
+                            st.rerun()
 
         with tab_s5:
-            st.subheader("📝 Директорға немесе мұғалімге заява жазу")
-            app_text_input = st.text_area("Заява мәтіні:", key="student_application_input")
-            if st.button("Заява жіберу"):
+            st.subheader("📝 Директорға немесе Мұғалімге заява (өтініш) жазу")
+            app_text_input = st.text_area("Заяваның мәтіні:")
+            if st.button("Заяваны жіберу"):
                 if app_text_input.strip():
                     if "applications" not in st.session_state.app_data:
                         st.session_state.app_data["applications"] = []
@@ -741,45 +655,26 @@ else:
                         "time": datetime.now().strftime("%Y-%m-%d %H:%M")
                     })
                     save_data(st.session_state.app_data)
-                    st.success("Заяваңыз сәтті жіберілді!")
-                else:
-                    st.error("Заява мәтіні бос болмауы тиіс.")
+                    st.success("Заява сәтті жіберілді!")
 
         with tab_s6:
-            st.subheader("⚖️ Менің жіберген аппеляцияларыım")
+            st.subheader("⚖️ Менің жіберген аппеляцияларым")
             appeals = st.session_state.app_data.get("appeals", [])
-            my_appeals = [ap for ap in appeals if ap['student'] == user]
+            my_appeals = [a for a in appeals if a['student'] == user]
             if my_appeals:
                 for ap in my_appeals:
                     st.write(f"📚 **Пән:** {ap['subject']} | 🕒 **Уақыты:** {ap['time']}")
-                    st.markdown(f"> **Сіздің шағымыңыз:** {ap['text']}")
+                    st.markdown(f"> **Мәтіні:** {ap['text']}")
                     st.divider()
             else:
-                st.info("Сіз әзірге аппеляция жібермедіңіз.")
+                st.info("Сіз әзірге аппеляция жіберген жоқсыз.")
 
         with tab_s7:
             st.subheader("📬 Хабарландырулар")
             notifications = st.session_state.app_data.get("notifications", {})
-            if user in notifications and notifications[user]:
-                for notif in notifications[user]:
-                    st.info(notif)
+            user_notifs = notifications.get(user, [])
+            if user_notifs:
+                for n in user_notifs:
+                    st.write(f"🔔 {n}")
             else:
                 st.info("Жаңа хабарландырулар жоқ.")
-
-        with tab_s8:
-            st.subheader("⚔️ Дуэль ойыны")
-            st.info("Бұл бөлімде басқа оқушылармен білім сайысына түсе аласыз.")
-            duel_qs = st.session_state.app_data.get("duel_questions", [])
-            if duel_qs:
-                sample_dq = random.choice(duel_qs)
-                st.markdown(f"**Дуэль сұрағы:** {sample_dq['text']}")
-                for opt_k, opt_v in sample_dq['options'].items():
-                    st.write(f"{opt_k}) {opt_v}")
-                ans_duel = st.multiselect("Жауабыңызды таңдаңыз", ["A", "B", "C", "D"], key="duel_play_ans")
-                if st.button("Дуэль жауабын тапсыру"):
-                    if set(ans_duel) == set(sample_dq['correct']):
-                        st.success("🎉 Дұрыс! Дуэльде жеңіске жеттіңіз!")
-                    else:
-                        st.error(f"❌ Қате! Дұрыс жауап: {', '.join(sample_dq['correct'])}")
-            else:
-                st.warning("Әзірге жүйеде дуэль сұрақтары жоқ.")

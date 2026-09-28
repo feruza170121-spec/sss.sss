@@ -566,27 +566,55 @@ else:
                     if qs:
                         st.markdown("---")
                         answers = {}
+                        total_q = len(qs)
+                        
+                        # Әр сұрақты рет-ретімен көрсету және жоғарғы жағында индикатор жасау
                         for idx, q in enumerate(qs):
-                            st.markdown(f"### Сұрақ {idx+1}: {q['text']}")
+                            q_num = idx + 1
+                            st.markdown(f"### 📌 Сұрақ {q_num} / {total_q}")
+                            st.progress(q_num / total_q)
+                            
+                            st.markdown(f"**{q['text']}**")
                             for k, v in q['options'].items():
                                 st.write(f"{k}) {v}")
-                            ans = st.multiselect("Жауап", ["A", "B", "C", "D"], key=f"q_{q['id']}")
+                                
+                            ans = st.multiselect(f"Жауабыңызды таңдаңыз (Сұрақ {q_num}):", ["A", "B", "C", "D"], key=f"q_{q['id']}")
                             answers[q['id']] = ans
                             st.divider()
                         
                         col_sub_btn, col_exit_btn = st.columns([3, 1])
                         with col_sub_btn:
                             if st.button("Тестті аяқтау"):
-                                score = 0
-                                for q in qs:
-                                    if set(answers.get(q['id'], [])) == set(q['correct']):
-                                        score += 1
-                                st.session_state.app_data["results"].append({
-                                    "student": user, "subject": sel_sub, "score": score, "total": len(qs), "date": datetime.now().strftime("%Y-%m-%d %H:%M")
-                                })
-                                save_data(st.session_state.app_data)
-                                st.session_state.test_submitted = True
-                                st.rerun()
+                                # Тастап кеткен (бос қалған) сұрақтарды анықтау
+                                unanswered = []
+                                for idx, q in enumerate(qs):
+                                    if not answers.get(q['id']):
+                                        unanswered.append(idx + 1)
+                                        
+                                if unanswered:
+                                    st.warning(f"⚠️ Назар аударыңыз! Келесі сұрақтарға жауап берілмеді (бос қалды): **{', '.join(map(str, unanswered))}-сұрақтар**.")
+                                    if st.button("Бәрібір аяқтау (Жіберу)"):
+                                        score = 0
+                                        for q in qs:
+                                            if set(answers.get(q['id'], [])) == set(q['correct']):
+                                                score += 1
+                                        st.session_state.app_data["results"].append({
+                                            "student": user, "subject": sel_sub, "score": score, "total": len(qs), "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+                                        })
+                                        save_data(st.session_state.app_data)
+                                        st.session_state.test_submitted = True
+                                        st.rerun()
+                                else:
+                                    score = 0
+                                    for q in qs:
+                                        if set(answers.get(q['id'], [])) == set(q['correct']):
+                                            score += 1
+                                    st.session_state.app_data["results"].append({
+                                        "student": user, "subject": sel_sub, "score": score, "total": len(qs), "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+                                    })
+                                    save_data(st.session_state.app_data)
+                                    st.session_state.test_submitted = True
+                                    st.rerun()
                         with col_exit_btn:
                             if st.button("Шығу"):
                                 st.session_state.test_submitted = False
